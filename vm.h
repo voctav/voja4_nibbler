@@ -3,6 +3,7 @@
 
 #include "clock.h"
 #include "program.h"
+#include "rng.h"
 
 #include <stdint.h>
 
@@ -197,6 +198,8 @@ struct vm_state {
 	program_addr_t reg_pc; /* Program counter. */
 	uint8_t reg_sp;        /* Stack pointer. */
 	uint8_t reg_flags;     /* Flags. */
+
+	struct rng_state rng;   /* Random number generator state. */
 
 	struct timespec t_start; /* Time of VM startup. */
 	vm_clock_t t_cycle_start;

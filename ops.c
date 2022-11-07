@@ -244,6 +244,10 @@ bool maybe_handle_sfr_read(const struct vm_instruction *instr, const struct inst
 		vm->reg_r0 = vm->reg_rd_flags;
 		vm->reg_rd_flags &= ~RD_FLAG_USER_SYNC;
 		break;
+	case SFR_RANDOM:
+		vm->reg_r0 = vm->reg_random;
+		vm->reg_random = next_rng(&vm->rng) & 0xf;
+		break;
 	default:
 		vm->reg_r0 = vm->user_mem[addr];
 		break;
@@ -261,6 +265,18 @@ bool maybe_handle_sfr_write(const struct vm_instruction *instr, const struct ins
 
 	/* TODO(octav): Handle writes to special regs. */
 	switch (addr) {
+	case SFR_RANDOM:
+		if (vm->reg_r0 == 0xf) {
+			init_rng(&vm->rng);
+			vm->reg_random = next_rng(&vm->rng) & 0xf;
+		} else {
+			uint32_t seed = vm->reg_r0;
+			vm->reg_random = seed;
+			seed = (seed << 4) | seed;
+			seed = (seed << 8) | seed;
+			set_rng_seed(&vm->rng, seed);
+		}
+		break;
 	default:
 		vm->user_mem[addr] = vm->reg_r0;
 		break;
