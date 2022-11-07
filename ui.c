@@ -56,7 +56,7 @@ void finish(int sig)
 	exit(0);
 }
 
-void init_ui(struct ui *ui)
+void init_ui(struct ui *ui, int step_mode)
 {
 	memset(ui, 0, sizeof(struct ui));
 
@@ -99,6 +99,8 @@ void init_ui(struct ui *ui)
 	wrefresh(ui->status);
 	wtimeout(ui->status, 0);
 	keypad(ui->status, true);
+
+	ui->single_step = step_mode;
 }
 
 void exit_ui(struct ui *ui)
