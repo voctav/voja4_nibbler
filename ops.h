@@ -43,6 +43,7 @@ enum {
 	OP_FLAG_CAN_JUMP = 0x2,
 	OP_FLAG_CAN_RD_SFR = 0x4,
 	OP_FLAG_CAN_WR_SFR = 0x8,
+	OP_FLAG_UPDATE_CARRY = 0x10,
 };
 
 struct instruction_descriptor {

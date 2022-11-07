@@ -333,7 +333,9 @@ void op_or(const struct vm_instruction *instr, const struct instruction_descript
 	uint8_t result = vm->user_mem[dst];
 	result |= descr->src->get_val(instr, vm);
 	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
+		vm->reg_flags |= FLAG_CARRY;
+	}
 }
 
 void op_and(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
@@ -342,7 +344,9 @@ void op_and(const struct vm_instruction *instr, const struct instruction_descrip
 	uint8_t result = vm->user_mem[dst];
 	result &= descr->src->get_val(instr, vm);
 	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
+		vm->reg_flags &= ~FLAG_CARRY;
+	}
 }
 
 void op_xor(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
@@ -351,7 +355,9 @@ void op_xor(const struct vm_instruction *instr, const struct instruction_descrip
 	uint8_t result = vm->user_mem[dst];
 	result ^= descr->src->get_val(instr, vm);
 	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
+		vm->reg_flags ^= FLAG_CARRY;
+	}
 }
 
 void op_mov(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
@@ -569,9 +575,9 @@ const struct instruction_descriptor INSTRUCTIONS_WIDE[] = {
 	{.op = &OP_INC,  .dst = &DST_RY,                   .flg = OP_FLAG_CAN_JUMP},
 	{.op = &OP_DEC,  .dst = &DST_RY,                   .flg = OP_FLAG_CAN_JUMP},
 	{.op = &OP_DSZ,  .dst = &DST_RY},
-	{.op = &OP_OR,   .dst = &DST_R0,  .src = &SRC_N},
-	{.op = &OP_AND,  .dst = &DST_R0,  .src = &SRC_N},
-	{.op = &OP_XOR,  .dst = &DST_R0,  .src = &SRC_N},
+	{.op = &OP_OR,   .dst = &DST_R0,  .src = &SRC_N,   .flg = OP_FLAG_UPDATE_CARRY},
+	{.op = &OP_AND,  .dst = &DST_R0,  .src = &SRC_N,   .flg = OP_FLAG_UPDATE_CARRY},
+	{.op = &OP_XOR,  .dst = &DST_R0,  .src = &SRC_N,   .flg = OP_FLAG_UPDATE_CARRY},
 	{.op = &OP_EXR,                   .src = &SRC_N},
 	{.op = &OP_BIT,  .dst = &DST_RGI, .src = &SRC_M},
 	{.op = &OP_BSET, .dst = &DST_RGO, .src = &SRC_M},
