@@ -18,6 +18,9 @@ To run:
 ./nibbler file.bin
 ```
 
+There are some sample programs in examples/, which are compiled from the
+official badge tools repo.
+
 Keys:
   * Q - end program and exit.
   * Space - enter single step mode, or execute next instruction.
@@ -43,7 +46,6 @@ This has only been tested with a handful of programs, so expect some bugs.
 
 The following features are not implemented yet:
   * Overflow flag (for signed arithmetic)
-  * RNG
   * Keys
   * GPIO
   * UART
