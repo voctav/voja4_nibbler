@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 /* Clock periods in microseconds indexed by the value of the Clock register. */
@@ -101,14 +102,14 @@ void vm_update_user_sync(struct vm_state *vm)
 	}
 }
 
-void vm_execute(struct program *prg)
+void vm_execute(struct program *prg, int step_mode)
 {
 	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
 	vm->prg = prg;
 	vm_init(vm);
 
 	struct ui ui;
-	init_ui(&ui);
+	init_ui(&ui, step_mode);
 
 	while (!ui.quit) {
 		vm_wait_cycle(vm);

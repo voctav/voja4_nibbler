@@ -219,6 +219,6 @@ void vm_init(struct vm_state *vm);
 
 void vm_decode_next(const struct program *prog, struct vm_state *vm, struct vm_instruction *out);
 
-void vm_execute(struct program *prg);
+void vm_execute(struct program *prg, int step_mode);
 
 #endif /* _VM_H */
