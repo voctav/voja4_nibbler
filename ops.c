@@ -341,6 +341,7 @@ void op_or(const struct vm_instruction *instr, const struct instruction_descript
 	uint8_t result = vm->user_mem[dst];
 	result |= descr->src->get_val(instr, vm);
 	vm->user_mem[dst] = result;
+	update_flags(result, FLAG_ZERO, vm);
 	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
 		vm->reg_flags |= FLAG_CARRY;
 	}
@@ -352,6 +353,7 @@ void op_and(const struct vm_instruction *instr, const struct instruction_descrip
 	uint8_t result = vm->user_mem[dst];
 	result &= descr->src->get_val(instr, vm);
 	vm->user_mem[dst] = result;
+	update_flags(result, FLAG_ZERO, vm);
 	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
 		vm->reg_flags &= ~FLAG_CARRY;
 	}
@@ -363,6 +365,7 @@ void op_xor(const struct vm_instruction *instr, const struct instruction_descrip
 	uint8_t result = vm->user_mem[dst];
 	result ^= descr->src->get_val(instr, vm);
 	vm->user_mem[dst] = result;
+	update_flags(result, FLAG_ZERO, vm);
 	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
 		vm->reg_flags ^= FLAG_CARRY;
 	}
