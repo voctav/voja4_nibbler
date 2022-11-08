@@ -9,21 +9,27 @@ const int MAX_STACK_DEPTH = 5;
 const memory_addr_t SFR_ADDR_START = 0xf0;
 const memory_addr_t SFR_ADDR_END = 0x100;
 
+const char* const reg_names[16] = {
+	"R0", "R1", "R2", "R3", "R4", 
+	"R5", "R6", "R7", "R8", "R9", 
+	"OUT", "IN", "JSR", "PCL", "PCM", "PCH"
+};
+
 void get_info_rx(const struct vm_instruction *instr, char *out)
 {
-	snprintf(out, INFO_SIZE, "R%hhd", instr->nibble2);
+	snprintf(out, INFO_SIZE, "%s", reg_names[instr->nibble2]);
 }
 
 void get_info_ry(const struct vm_instruction *instr, char *out)
 {
-	snprintf(out, INFO_SIZE, "R%hhd", instr->nibble3);
+	snprintf(out, INFO_SIZE, "%s", reg_names[instr->nibble3]);
 }
 
 void get_info_rg(const struct vm_instruction *instr, char *out)
 {
 	uint8_t rg = instr->nibble3 >> 2;
 	if (rg < 0x3) {
-		snprintf(out, INFO_SIZE, "R%hhd", rg);
+		snprintf(out, INFO_SIZE, "%s", reg_names[rg]);
 	} else {
 		snprintf(out, INFO_SIZE, "RS");
 	}
@@ -46,7 +52,9 @@ void get_info_pointer(const struct vm_instruction *instr, char *out)
 
 void get_info_indirect(const struct vm_instruction *instr, char *out)
 {
-	snprintf(out, INFO_SIZE, "[R%hhd:R%hhd]", instr->nibble2, instr->nibble3);
+	snprintf(out, INFO_SIZE, "[%s:%s]",
+		reg_names[instr->nibble2],
+		reg_names[instr->nibble3]);
 }
 
 void get_info_literal(const struct vm_instruction *instr, char *out)
