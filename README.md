@@ -45,7 +45,6 @@ parse the escape sequence.
 This has only been tested with a handful of programs, so expect some bugs.
 
 The following features are not implemented yet:
-  * Overflow flag (for signed arithmetic)
   * Keys
   * GPIO
   * UART

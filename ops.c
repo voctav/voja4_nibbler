@@ -190,32 +190,64 @@ const struct operand_src SRC_N   = {.mnemnonic = "N",    .get_val = get_val_lite
 const struct operand_src SRC_NN  = {.mnemnonic = "NN",   .get_val = get_val_byte_literal,  .get_info = get_info_byte_literal};
 const struct operand_src SRC_M   = {.mnemnonic = "M",    .get_val = get_val_crumb_literal, .get_info = get_info_crumb_literal};
 
-void update_flags(uint8_t result, uint8_t mask, struct vm_state *vm)
+/*
+ * Updates Zero flag.
+ */
+void update_zero_flag(uint8_t result, struct vm_state *vm)
 {
-	uint8_t new_flags = 0;
-	if (result & 0x10) {
-		new_flags |= FLAG_CARRY;
-	}
 	if (!(result & 0xf)) {
-		new_flags |= FLAG_ZERO;
-	}
-	/* TODO(octav): Implement overflow logic. */
-	if (0) {
-		new_flags |= FLAG_OVERFLOW;
-	}
-	vm->reg_flags = (vm->reg_flags & ~mask) | (new_flags & mask);
-	if (mask & FLAG_OVERFLOW) {
-		if (vm->reg_flags & FLAG_OVERFLOW) {
-			vm->reg_rd_flags |= RD_FLAG_V_FLAG;
-		} else {
-			vm->reg_rd_flags &= ~RD_FLAG_V_FLAG;
-		}
+		vm->reg_flags |= FLAG_ZERO;
+	} else {
+		vm->reg_flags &= ~FLAG_ZERO;
 	}
 }
 
-void maybe_call_or_jump(memory_addr_t dst, struct vm_state *vm)
+/*
+ * Updates the Carry flag for addition ops (ADD, ADC, INC).
+ */
+void update_carry_flag(uint8_t result, struct vm_state *vm)
 {
-	if (dst == SFR_JSR) {
+	if (result & 0x10) {
+		vm->reg_flags |= FLAG_CARRY;
+	} else {
+		vm->reg_flags &= ~FLAG_CARRY;
+	}
+}
+
+/*
+ * Updates the Carry flag for subtraction ops (SUB, SBB, CP, DEC).
+ * The Carry flag is called Borrow (inverse of Carry).
+ */
+void update_borrow_flag(uint8_t result, struct vm_state *vm)
+{
+	if (!(result & 0x10)) {
+		vm->reg_flags |= FLAG_CARRY;
+	} else {
+		vm->reg_flags &= ~FLAG_CARRY;
+	}
+}
+
+/*
+ * Updates the Overflow flag for basic arithmetic ops (ADD, ADC, SUB, SBB, CP).
+ * The operands and result are interpreted as signed values.
+ */
+void update_overflow_flag(int8_t sresult, struct vm_state *vm)
+{
+	if (sresult < -8 || sresult > 7) {
+		vm->reg_flags |= FLAG_OVERFLOW;
+		vm->reg_rd_flags |= RD_FLAG_V_FLAG;
+	} else {
+		vm->reg_flags &= ~FLAG_OVERFLOW;
+		vm->reg_rd_flags &= ~RD_FLAG_V_FLAG;
+	}
+}
+
+/*
+ * Initiates a call or jump if the destination address is JSR or PCL register.
+ */
+void maybe_call_or_jump(memory_addr_t dst_addr, struct vm_state *vm)
+{
+	if (dst_addr == SFR_JSR) {
 		if (vm->reg_sp == MAX_STACK_DEPTH) {
 			fprintf(stderr, "Stack overflow.\n");
 			exit(1);
@@ -228,7 +260,7 @@ void maybe_call_or_jump(memory_addr_t dst, struct vm_state *vm)
 		return;
 	}
 
-	if (dst == SFR_PCL) {
+	if (dst_addr == SFR_PCL) {
 		vm->reg_pc = (vm->reg_pch << 8) | (vm->reg_pcm << 4) | vm->reg_pcl;
 		return;
 	}
@@ -239,6 +271,10 @@ bool is_sfr_address(memory_addr_t addr, const struct vm_state *vm)
 	return addr >= SFR_FIRST && addr <= SFR_LAST;
 }
 
+/*
+ * Overrides memory read behavior for Special Function Registers.
+ * Returns true if handled.
+ */
 bool maybe_handle_sfr_read(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	memory_addr_t addr = get_addr_pointer(instr, vm);
@@ -264,6 +300,10 @@ bool maybe_handle_sfr_read(const struct vm_instruction *instr, const struct inst
 	return true;
 }
 
+/*
+ * Overrides memory write behavior for Special Function Registers.
+ * Returns true if handled.
+ */
 bool maybe_handle_sfr_write(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	memory_addr_t addr = get_addr_pointer(instr, vm);
@@ -293,84 +333,141 @@ bool maybe_handle_sfr_write(const struct vm_instruction *instr, const struct ins
 	return true;
 }
 
+/*
+ * Interprets a nibble as a signed integer and casts to an int8.
+ */
+int8_t nibble_to_int8(uint8_t nibble)
+{
+	uint8_t sign_bit = nibble & 0x8;
+	/* Extend sign bit to full byte. */
+	uint8_t ret = nibble | ~(sign_bit - 1);
+	return (int8_t) ret;
+}
+
+/*
+ * ADD operation (addition).
+ */
 void op_add(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
-	result += descr->src->get_val(instr, vm);
-	vm->user_mem[dst] = result & 0xf;
-	update_flags(result, FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t dst = vm->user_mem[dst_addr];
+	uint8_t src = descr->src->get_val(instr, vm);
+	uint8_t result = dst + src;
+	int8_t sresult = nibble_to_int8(dst) + nibble_to_int8(src);
+	vm->user_mem[dst_addr] = result & 0xf;
+	update_zero_flag(result, vm);
+	update_carry_flag(result, vm);
+	update_overflow_flag(sresult, vm);
 }
 
+/*
+ * ADC operation (addition with carry).
+ */
 void op_adc(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
-	result += descr->src->get_val(instr, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t dst = vm->user_mem[dst_addr];
+	uint8_t src = descr->src->get_val(instr, vm);
+	uint8_t result = dst + src;
+	int8_t sresult = nibble_to_int8(dst) + nibble_to_int8(src);
 	if (vm->reg_flags & FLAG_CARRY) {
 		result++;
+		sresult++;
 	}
-	vm->user_mem[dst] = result & 0xf;
-	update_flags(result, FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW, vm);
+	vm->user_mem[dst_addr] = result & 0xf;
+	update_zero_flag(result, vm);
+	update_carry_flag(result, vm);
+	update_overflow_flag(sresult, vm);
 }
 
+/*
+ * SUB operation (subtraction).
+ */
 void op_sub(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
-	result -= descr->src->get_val(instr, vm);
-	vm->user_mem[dst] = result & 0xf;
-	update_flags(result, FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t dst = vm->user_mem[dst_addr];
+	uint8_t src = descr->src->get_val(instr, vm);
+	uint8_t result = dst - src;
+	int8_t sresult = nibble_to_int8(dst) - nibble_to_int8(src);
+	vm->user_mem[dst_addr] = result & 0xf;
+	update_zero_flag(result, vm);
+	update_borrow_flag(result, vm);
+	update_overflow_flag(sresult, vm);
 }
 
+/*
+ * SBB operation (subtraction with borrow).
+ */
 void op_sbb(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
-	result -= descr->src->get_val(instr, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t dst = vm->user_mem[dst_addr];
+	uint8_t src = descr->src->get_val(instr, vm);
+	uint8_t result = dst - src;
+	int8_t sresult = nibble_to_int8(dst) - nibble_to_int8(src);
 	if (!(vm->reg_flags & FLAG_CARRY)) {
 		result--;
+		sresult--;
 	}
-	vm->user_mem[dst] = result & 0xf;
-	update_flags(result, FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW, vm);
+	vm->user_mem[dst_addr] = result & 0xf;
+	update_zero_flag(result, vm);
+	update_borrow_flag(result, vm);
+	update_overflow_flag(sresult, vm);
 }
 
+/*
+ * OR operation (bitwise OR).
+ * When src is a literal, sets the Carry flag.
+ */
 void op_or(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	result |= descr->src->get_val(instr, vm);
-	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	vm->user_mem[dst_addr] = result;
+	update_zero_flag(result, vm);
 	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
 		vm->reg_flags |= FLAG_CARRY;
 	}
 }
 
+/*
+ * AND operation (bitwise AND).
+ * When src is a literal, clears the Carry flag.
+ */
 void op_and(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	result &= descr->src->get_val(instr, vm);
-	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	vm->user_mem[dst_addr] = result;
+	update_zero_flag(result, vm);
 	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
 		vm->reg_flags &= ~FLAG_CARRY;
 	}
 }
 
+/*
+ * XOR operation (bitwise exclusive OR).
+ * When src is a literal, toggles the Carry flag.
+ */
 void op_xor(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	result ^= descr->src->get_val(instr, vm);
-	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	vm->user_mem[dst_addr] = result;
+	update_zero_flag(result, vm);
 	if (descr->flg & OP_FLAG_UPDATE_CARRY) {
 		vm->reg_flags ^= FLAG_CARRY;
 	}
 }
 
+/*
+ * MOV operation (move).
+ * May initiate a call or jump if registers JSR or PCL are the destination.
+ */
 void op_mov(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	if ((descr->flg & OP_FLAG_CAN_RD_SFR) && maybe_handle_sfr_read(instr, descr, vm)) {
@@ -379,64 +476,92 @@ void op_mov(const struct vm_instruction *instr, const struct instruction_descrip
 	if ((descr->flg & OP_FLAG_CAN_WR_SFR) && maybe_handle_sfr_write(instr, descr, vm)) {
 		return;
 	}
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
 	uint8_t src = descr->src->get_val(instr, vm);
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
 	if (descr->flg & OP_FLAG_DST_BYTE) {
-		vm->user_mem[dst] = src & 0xf;
-		vm->user_mem[dst + 1] = src >> 4;
+		vm->user_mem[dst_addr] = src & 0xf;
+		vm->user_mem[dst_addr + 1] = src >> 4;
 	} else {
-		vm->user_mem[dst] = src;
+		vm->user_mem[dst_addr] = src;
 	}
 	if (descr->flg & OP_FLAG_CAN_JUMP) {
-		maybe_call_or_jump(dst, vm);
+		maybe_call_or_jump(dst_addr, vm);
 	}
 }
 
+/*
+ * JR operation (jump relative).
+ */
 void op_jr(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	vm->reg_pc += (int8_t) descr->src->get_val(instr, vm);
 }
 
+/*
+ * CP operation (compare).
+ * This is identical in behavior with the SUB operation, except that the result
+ * is not stored (only the flags are updated).
+ */
 void op_cp(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
-	result -= descr->src->get_val(instr, vm);
-	update_flags(result, FLAG_CARRY | FLAG_ZERO, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t dst = vm->user_mem[dst_addr];
+	uint8_t src = descr->src->get_val(instr, vm);
+	uint8_t result = dst - src;
+	int8_t sresult = nibble_to_int8(dst) - nibble_to_int8(src);
+	update_zero_flag(result, vm);
+	update_borrow_flag(result, vm);
+	update_overflow_flag(sresult, vm);
 }
 
+/*
+ * INC operation (increment).
+ * May initiate a call or jump if registers JSR or PCL are the destination.
+ */
 void op_inc(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	result++;
-	vm->user_mem[dst] = result & 0xf;
-	update_flags(result, FLAG_CARRY | FLAG_ZERO, vm);
-	maybe_call_or_jump(dst, vm);
+	vm->user_mem[dst_addr] = result & 0xf;
+	update_zero_flag(result, vm);
+	update_carry_flag(result, vm);
+	maybe_call_or_jump(dst_addr, vm);
 }
 
+/*
+ * DEC operation (decrement).
+ * May initiate a call or jump if registers JSR or PCL are the destination.
+ */
 void op_dec(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	result--;
-	vm->user_mem[dst] = result & 0xf;
-	update_flags(result, FLAG_CARRY | FLAG_ZERO, vm);
-	maybe_call_or_jump(dst, vm);
+	vm->user_mem[dst_addr] = result & 0xf;
+	update_zero_flag(result, vm);
+	update_borrow_flag(result, vm);
+	maybe_call_or_jump(dst_addr, vm);
 }
 
+/*
+ * DSZ operation (decrement and skip next instruction if zero).
+ */
 void op_dsz(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	result--;
 	result &= 0xf;
-	vm->user_mem[dst] = result;
+	vm->user_mem[dst_addr] = result;
 	if (!result) {
 		vm->reg_pc++;
 	}
 }
 
+/*
+ * EXR operation (exchange registers).
+ */
 void op_exr(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	uint8_t n = descr->src->get_val(instr, vm);
@@ -450,39 +575,54 @@ void op_exr(const struct vm_instruction *instr, const struct instruction_descrip
 	memcpy(vm->alt_regs_page, buf, size);
 }
 
+/*
+ * BIT operation (test bit).
+ */
 void op_bit(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
 	uint8_t m = descr->src->get_val(instr, vm);
-	uint8_t result = vm->user_mem[dst] & (1 << m);
-	update_flags(result, FLAG_ZERO, vm);
+	uint8_t result = vm->user_mem[dst_addr] & (1 << m);
+	update_zero_flag(result, vm);
 }
 
+/*
+ * BSET operation (set bit).
+ */
 void op_bset(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
 	uint8_t m = descr->src->get_val(instr, vm);
-	vm->user_mem[dst] |= 1 << m;
+	vm->user_mem[dst_addr] |= 1 << m;
 }
 
+/*
+ * BCLR operation (clear bit).
+ */
 void op_bclr(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
 	uint8_t m = descr->src->get_val(instr, vm);
-	vm->user_mem[dst] &= ~(1 << m);
+	vm->user_mem[dst_addr] &= ~(1 << m);
 }
 
+/*
+ * BTG operation (toggle bit).
+ */
 void op_btg(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
 	uint8_t m = descr->src->get_val(instr, vm);
-	vm->user_mem[dst] ^= 1 << m;
+	vm->user_mem[dst_addr] ^= 1 << m;
 }
 
+/*
+ * RRC operation (rotate right through carry).
+ */
 void op_rrc(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
-	memory_addr_t dst = descr->dst->get_addr(instr, vm);
-	uint8_t result = vm->user_mem[dst];
+	memory_addr_t dst_addr = descr->dst->get_addr(instr, vm);
+	uint8_t result = vm->user_mem[dst_addr];
 	bool carry = vm->reg_flags & FLAG_CARRY;
 	if (result & 0x1) {
 		vm->reg_flags |= FLAG_CARRY;
@@ -493,10 +633,13 @@ void op_rrc(const struct vm_instruction *instr, const struct instruction_descrip
 	if (carry) {
 		result |= 0x8;
 	}
-	vm->user_mem[dst] = result;
-	update_flags(result, FLAG_ZERO, vm);
+	vm->user_mem[dst_addr] = result;
+	update_zero_flag(result, vm);
 }
 
+/*
+ * RET operation (return from subroutine).
+ */
 void op_ret(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	if (!vm->reg_sp) {
@@ -510,6 +653,9 @@ void op_ret(const struct vm_instruction *instr, const struct instruction_descrip
 	vm->reg_pc = vm->stack[ret_ptr] | (vm->stack[ret_ptr + 1] << 4) | (vm->stack[ret_ptr + 2] << 8);
 }
 
+/*
+ * SKIP operation (skip next instructions conditionally).
+ */
 void op_skip(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	uint8_t cnd_flg = descr->cnd->get_val(instr, vm);
