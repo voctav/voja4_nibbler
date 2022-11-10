@@ -3,14 +3,19 @@
 
 #include <stdint.h>
 
+#define RNG_USE_RANDOM_SEED	0xf
+
 struct rng_state {
 	uint32_t seed;
 };
 
-void init_rng(struct rng_state *rng);
+/* Initializes the PRNG state and returns the first number in the sequence. */
+uint8_t init_rng(struct rng_state *rng);
 
-void set_rng_seed(struct rng_state *rng, uint32_t seed);
+/* Resets the PRNG seed and returns the first number in the sequence. */
+uint8_t set_rng_seed(struct rng_state *rng, uint8_t seed);
 
-uint32_t next_rng(struct rng_state *rng);
+/* Gets the next number in the sequence from the PRNG. */
+uint8_t next_rng(struct rng_state *rng);
 
 #endif /* _RNG_H */

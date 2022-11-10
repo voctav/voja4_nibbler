@@ -54,9 +54,7 @@ void vm_init(struct vm_state *vm)
 	vm->reg_ser_ctrl = SERIAL_BAUD_9600;
 	vm->reg_auto_off = 0x2;
 	vm->reg_dimmer = 0xf;
-
-	init_rng(&vm->rng);
-	vm->reg_random = next_rng(&vm->rng) & 0xf;
+	vm->reg_random = init_rng(&vm->rng);
 
 	get_time(&vm->t_start);
 }
