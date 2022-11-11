@@ -113,6 +113,13 @@ enum {
 	SERIAL_ERROR       = 0x8,
 };
 
+enum {
+	KEY_STATUS_JUST_PRESS	= 0x1,
+	KEY_STATUS_LAST_PRESS	= 0x2,
+	KEY_STATUS_ANY_PRESS	= 0x4,
+	KEY_STATUS_ALT_PRESS	= 0x8,
+};
+
 /* Type of a memory word. This is a nibble on the actual hardware. */
 typedef uint8_t memory_word_t;
 

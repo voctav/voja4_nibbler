@@ -288,6 +288,10 @@ bool maybe_handle_sfr_read(const struct vm_instruction *instr, const struct inst
 		vm->reg_r0 = vm->reg_rd_flags;
 		vm->reg_rd_flags &= ~RD_FLAG_USER_SYNC;
 		break;
+	case SFR_KEY_STATUS:
+		vm->reg_r0 = vm->reg_key_status;
+		vm->reg_key_status &= ~KEY_STATUS_JUST_PRESS;
+		break;
 	case SFR_RANDOM:
 		vm->reg_r0 = vm->reg_random;
 		vm->reg_random = next_rng(&vm->rng);

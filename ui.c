@@ -143,6 +143,7 @@ void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
 void handle_keys(struct vm_state *vm, struct ui *ui, bool loop)
 {
 	do {
+		int key = -1;
 		int ch = wgetch(ui->status);
 		switch (ch) {
 		case 'q':
@@ -163,8 +164,54 @@ void handle_keys(struct vm_state *vm, struct ui *ui, bool loop)
 		case KEY_RIGHT:
 			vm->reg_page = (vm->reg_page + 1) & 0xf;
 			break;
+		case '\t':
+			key = 0;
+			break;
+		case '1':
+			key = 1;
+			break;
+		case '2':
+			key = 2;
+			break;
+		case '3':
+			key = 3;
+			break;
+		case '4':
+			key = 4;
+			break;
+		case 'a':
+			key = 5;
+			break;
+		case 's':
+			key = 6;
+			break;
+		case 'd':
+			key = 7;
+			break;
+		case 'f':
+			key = 8;
+			break;
+		case 'z':
+			key = 9;
+			break;
+		case 'x':
+			key = 10;
+			break;
+		case 'c':
+			key = 11;
+			break;
+		case 'v':
+			key = 12;
+			break;
+		case '/':
+			key = 13;
+			break;
 		case ERR:
 			break;
+		}
+		if (key >= 0) {
+			vm->reg_key_status = KEY_STATUS_JUST_PRESS | KEY_STATUS_LAST_PRESS | KEY_STATUS_ANY_PRESS;
+			vm->reg_key_reg = key;
 		}
 	} while (loop);
 }

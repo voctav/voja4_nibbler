@@ -26,6 +26,11 @@ Keys:
   * Space - enter single step mode, or execute next instruction.
   * Enter - exit single step mode and continue running program.
   * Left/Right - decrement/increment Page register.
+  * \` - key 0 (mode)
+  * 1 2 3 4 - keys 1-4 (opcode)
+  * A S D F - keys 5-8 (operand x)
+  * Z X C V - keys 9-12 (operand x)
+  * / - key 13 (data in)
 
 Note that pressing Esc results in a small delay as the getch is attempting to
 parse the escape sequence.
@@ -39,17 +44,28 @@ parse the escape sequence.
     can do faster than 100 KHz, but UI updates may introduce slight delays.
   * All registers are mapped correctly onto user memory and can be visualized
     in the matrix just like on the real hardware.
+  * Basic support for keys. AnyPress and LastPress flags will be set the first
+    time a recognized key is pressed and will stay like that. JustPress will be
+    set every time a new key is recognized, and it will be reset when the
+    program reads the register (as expected).
 
 ## Missing Features
 
-This has only been tested with a handful of programs, so expect some bugs.
+The core VM seems to work well with a variety of programs, but there may still
+be bugs.
 
 The following features are not implemented yet:
-  * Keys
+  * Keys are implemented partially (no key up events)
   * GPIO
   * UART
 
 There a lot more work to be done on the UI.
+
+## Known Issues
+
+VM crashes (e.g. stack overflow/underflow) cause abrupt termination and leave
+the console in a bad state. It's also been reported that terminal colors may
+not be reset correctly on exit.
 
 ## Resources
 
