@@ -126,10 +126,26 @@ void vm_update_user_sync(struct vm_state *vm)
 }
 
 void vm_update_in_reg(struct vm_state *vm) {
-	if (vm->reg_wr_flags & WR_FLAG_IN_OUT_POS)
+	if (vm->reg_wr_flags & WR_FLAG_IN_OUT_POS) {
 		vm->reg_in_b = 0xf;
-	else
+	} else {
 		vm->reg_in = 0xf;
+	}
+}
+
+void vm_execute_cycle(struct vm_state *vm)
+{
+	vm->t_cycle_start = get_vm_clock(&vm->t_start);
+
+	vm_update_user_sync(vm);
+	vm_update_in_reg(vm);
+
+	struct vm_instruction vmi;
+	vm_decode_next(vm, &vmi);
+	const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
+	descr->op->op_fn(&vmi, descr, vm);
+
+	vm->t_cycle_end = get_vm_clock(&vm->t_start);
 }
 
 void vm_execute(struct program *prg, int ui_options)
@@ -148,17 +164,7 @@ void vm_execute(struct program *prg, int ui_options)
 		long delay_usec = vm_get_cycle_wait_usec(vm);
 		usleep(delay_usec);
 
-		vm->t_cycle_start = get_vm_clock(&vm->t_start);
-
-		vm_update_user_sync(vm);
-		vm_update_in_reg(vm);
-
-		struct vm_instruction vmi;
-		vm_decode_next(vm, &vmi);
-		const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
-		descr->op->op_fn(&vmi, descr, vm);
-
-		vm->t_cycle_end = get_vm_clock(&vm->t_start);
+		vm_execute_cycle(vm);
 
 		update_ui(vm, &ui);
 	}
