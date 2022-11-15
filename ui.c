@@ -129,10 +129,11 @@ void init_ui(struct ui *ui, int ui_options)
 		} else {
 			init_pair(P_PIXEL_OFF, COLOR_WHITE, COLOR_BLACK);
 			for (int i = 0; i < DIMMER_LEVELS; i++) {
-				if (red_mode)
+				if (red_mode) {
 					init_pair(P_PIXEL_DIM0 + i, COLOR_RED, COLOR_BLACK);
-				else
+				} else {
 					init_pair(P_PIXEL_DIM0 + i, COLOR_WHITE, COLOR_BLACK);
+				}
 			}
 		}
 	}
