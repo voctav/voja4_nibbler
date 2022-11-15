@@ -18,21 +18,21 @@ To run:
 ./nibbler file.bin
 ```
 
-There are some sample programs in examples/, which are compiled from the
-official badge tools repo.
+There are some sample binary programs in `examples/`, which are assembled from
+the official badge tools repo.
 
 Keys:
   * Q - end program and exit.
   * Space - enter single step mode, or execute next instruction.
   * Enter - exit single step mode and continue running program.
   * Left/Right - decrement/increment Page register.
-  * \` - key 0 (mode)
-  * 1 2 3 4 - keys 1-4 (opcode)
-  * A S D F - keys 5-8 (operand x)
-  * Z X C V - keys 9-12 (operand x)
-  * / - key 13 (data in)
+  * `<tab>` - key 0 (mode).
+  * `1 2 3 4` - keys 1-4 (opcode).
+  * `A S D F` - keys 5-8 (operand x).
+  * `Z X C V` - keys 9-12 (operand y).
+  * `/` - key 13 (data in).
 
-Note that pressing Esc results in a small delay as the getch is attempting to
+Note that pressing `Esc` results in a small delay as `getch` is attempting to
 parse the escape sequence.
 
 ## Features
@@ -71,4 +71,3 @@ not be reset correctly on exit.
 
   * https://hackaday.io/project/182568-badge-for-supercon6-november-2022/discussion-181045
   * https://github.com/Hack-a-Day/2022-Supercon6-Badge-Tools
-
