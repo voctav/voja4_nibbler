@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
 	size_t size;
 	void *buf = read_file(argv[optind], &size);
 	struct program *prg = load_program(buf, size);
+	free(buf);
 	if (!prg) {
 		exit(EXIT_FAILURE);
 	}
