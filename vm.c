@@ -23,7 +23,7 @@
 #include "ops.h"
 #include "ui.h"
 
-#include <signal.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,18 +81,13 @@ void vm_init(struct vm_state *vm)
 
 void vm_decode_next(const struct program *prog, struct vm_state *vm, struct vm_instruction *vmi)
 {
-	if (vm->reg_pc > prog->length) {
-		kill(0, SIGUSR1); /* Trigger UI cleanup. */
-		fprintf(stderr, "Program jumped beyond last instruction.\n");
-		exit(EXIT_FAILURE);
-	}
-	if (vm->reg_pc == prog->length) {
-		kill(0, SIGUSR1); /* Trigger UI cleanup. */
-		fprintf(stderr, "Program finished.\n");
-		exit(EXIT_SUCCESS);
-	}
+	/* Should not happen as the program counter cannot exceed the size of program memory. */
+	assert(vm->reg_pc < PROGRAM_MEMORY_SIZE);
 	program_word_t pi = prog->instructions[vm->reg_pc];
 	vm->reg_pc++;
+	if (vm->reg_pc == PROGRAM_MEMORY_SIZE) {
+		vm->reg_pc = 0; /* Loop back to the first instruction. */
+	}
 	decode_instruction(pi, vmi);
 }
 

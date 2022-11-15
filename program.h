@@ -32,12 +32,13 @@ typedef uint16_t program_addr_t;
 #define PROGRAM_MEMORY_SIZE 4096
 #define HEADER_MAGIC_SIZE   6
 
-/* In memory representation of a program, based on serial protocol. */
+/* In memory representation of a program, based on the serial protocol. */
 struct program {
 	uint8_t header[HEADER_MAGIC_SIZE];
+	/* Number of instructions excluding zero memory beyond the loaded program. */
 	uint16_t length;
 	uint16_t checksum;
-	program_word_t instructions[0];  /* Memory allocated dynamically. */
+	program_word_t instructions[PROGRAM_MEMORY_SIZE];
 };
 
 struct program *load_program(void *buffer, size_t size);

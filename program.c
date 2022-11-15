@@ -53,7 +53,7 @@ struct program *load_program(void *buffer, size_t size) {
 		return NULL;
 	}
 
-	struct program *prg = (struct program *) calloc(1, sizeof(struct program) + length * sizeof(program_word_t));
+	struct program *prg = calloc(1, sizeof(struct program));
 	memcpy(&prg->header, buffer, sizeof(HEADER_MAGIC));
 	prg->length = length;
 
