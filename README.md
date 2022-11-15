@@ -59,6 +59,14 @@ Keys:
 Note that pressing `Esc` results in a small delay as `getch` is attempting to
 parse the escape sequence.
 
+## Command Line Options
+
+  * The -s option tells nibbler to start in single step mode. The default is
+    to start in free running mode and require the user pause execution with the
+    space key.
+  * The -r option will color the page display area red on terminals that support
+    colors. This better simulates the look for the real hardware.
+
 ## Terminal Settings
 
 Dimming is only supported for terminals with 256 colors.
@@ -95,11 +103,6 @@ The following features are not implemented yet:
   * UART
 
 There a lot more work to be done on the UI.
-
-## Known Issues
-
-Terminal colors are not reset correctly on exit. This should have a smaller
-impact now that the first 8 colors are not redefined.
 
 ## Resources
 
