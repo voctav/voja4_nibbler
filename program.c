@@ -82,7 +82,7 @@ void *read_file(char *path, size_t *size)
 	FILE *f = fopen(path, "rb");
 	if (!f) {
 		perror(path);
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	fseek(f, 0L, SEEK_END);
@@ -93,18 +93,16 @@ void *read_file(char *path, size_t *size)
 	if (!buf) {
 		fclose(f);
 		fprintf(stderr, "Error allocating memory for file.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	size_t count = fread(buf, 1, *size, f);
+	fclose(f);
 	if (count != *size) {
 		free(buf);
-		fclose(f);
 		fprintf(stderr, "Short read: %zu < %zu.\n", count, *size);
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
-
-	fclose(f);
 
 	return buf;
 }
