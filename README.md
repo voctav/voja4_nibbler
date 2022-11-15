@@ -35,6 +35,17 @@ Keys:
 Note that pressing `Esc` results in a small delay as `getch` is attempting to
 parse the escape sequence.
 
+## Terminal Settings
+
+Dimming is only supported for terminals with 256 colors.
+
+It's possible to change `TERM` environment variable to force a certain terminal
+type (e.g. `export TERM=xterm-256color`):
+  * `xterm-mono` - monochrome.
+  * `xterm-color` - 8 colors.
+  * `xterm-16color` - 16 colors.
+  * `xterm-256color` - 256 colors.
+
 ## Features
 
   * Simulated LED matrix shows active page.
@@ -64,8 +75,10 @@ There a lot more work to be done on the UI.
 ## Known Issues
 
 VM crashes (e.g. stack overflow/underflow) cause abrupt termination and leave
-the console in a bad state. It's also been reported that terminal colors may
-not be reset correctly on exit.
+the console in a bad state.
+
+Terminal colors are not reset correctly on exit. This should have a smaller
+impact now that the first 8 colors are not redefined.
 
 ## Resources
 

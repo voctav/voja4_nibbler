@@ -56,15 +56,12 @@ char *CLOCK_FREQUENCIES[] = {
 };
 
 enum {
-	C_BACKGROUND = 0x00,
-	C_TEXT       = 0x01,
-	C_BORDER     = 0x02,
+	/* Don't mess with the first 8 colors. */
+	C_BACKGROUND = 0x08,
 	C_PIXEL_DIM0 = 0x10,
 };
 
 enum {
-	P_TEXT = 1,
-	P_BORDER = 2,
 	P_PIXEL_OFF = 1,
 	P_PIXEL_DIM0 = 2,
 };
@@ -92,21 +89,26 @@ void init_ui(struct ui *ui, int step_mode)
 
 	if (has_colors()) {
 		start_color();
-	}
 
-	init_color(C_BACKGROUND, 0x00, 0x00, 0x00);
-	init_color(C_TEXT, 0xc0, 0xc0, 0xc0);
-	init_color(C_BORDER, 0x80, 0x80, 0x80);
+		if (can_change_color() && COLORS >= C_PIXEL_DIM0 + DIMMER_LEVELS) {
+			init_color(C_BACKGROUND, 0x00, 0x00, 0x00);
 
-	for (int i = 0; i < DIMMER_LEVELS; i++) {
-		short r = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
-		short g = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
-		short b = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
-		init_color(C_PIXEL_DIM0 + i, r, g, b);
-	}
-	init_pair(P_PIXEL_OFF, C_BACKGROUND, C_BACKGROUND);
-	for (int i = 0; i < DIMMER_LEVELS; i++) {
-		init_pair(P_PIXEL_DIM0 + i, C_PIXEL_DIM0 + i, C_BACKGROUND);
+			for (int i = 0; i < DIMMER_LEVELS; i++) {
+				short r = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
+				short g = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
+				short b = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
+				init_color(C_PIXEL_DIM0 + i, r, g, b);
+			}
+			init_pair(P_PIXEL_OFF, C_BACKGROUND, C_BACKGROUND);
+			for (int i = 0; i < DIMMER_LEVELS; i++) {
+				init_pair(P_PIXEL_DIM0 + i, C_PIXEL_DIM0 + i, C_BACKGROUND);
+			}
+		} else {
+			init_pair(P_PIXEL_OFF, COLOR_WHITE, COLOR_BLACK);
+			for (int i = 0; i < DIMMER_LEVELS; i++) {
+				init_pair(P_PIXEL_DIM0 + i, COLOR_WHITE, COLOR_BLACK);
+			}
+		}
 	}
 
 	ui->display = newwin(DISPLAY_HEIGHT + 2, DISPLAY_WIDTH + 2, 0, 0);
@@ -141,18 +143,26 @@ void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
 	ui->last_matrix_off = matrix_off;
 	memcpy(&ui->last_pages[0][0], &vm->pages[page][0], DISPLAY_PAGES * PAGE_SIZE * sizeof(memory_word_t));
 
+	int pixel_on_attr, pixel_off_attr;
+	if (has_colors()) {
+		pixel_on_attr = COLOR_PAIR(P_PIXEL_DIM0 + dimmer);
+		pixel_off_attr = COLOR_PAIR(P_PIXEL_OFF);
+	} else {
+		pixel_on_attr = 0;
+		pixel_off_attr = 0;
+	}
+
 	for (int i = 0; i < 0x10; i++) {
 		wmove(ui->display, i + 1, 1);
 		for (int j = page + 1; j >= page; j--) {
 			for (int k = 3; k >= 0; k--) {
-				short c;
 				if (vm->pages[j][i] & (1 << k)) {
-					c = P_PIXEL_DIM0 + dimmer;
+					wattrset(ui->display, pixel_on_attr);
+					wprintw(ui->display, "▐▌");
 				} else {
-					c = P_PIXEL_OFF;
+					wattrset(ui->display, pixel_off_attr);
+					wprintw(ui->display, "  ");
 				}
-				wattron(ui->display, COLOR_PAIR(c));
-				wprintw(ui->display, "▐▌");
 			}
 		}
 	}
