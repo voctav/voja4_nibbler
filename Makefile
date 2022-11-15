@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Werror -g
+CFLAGS = -O3 -Wall -Werror
+DEBUG_CFLAGS = -g -fsanitize=address -fsanitize=leak
 LDFLAGS = -lncursesw
 
 all: nibbler
@@ -7,5 +8,8 @@ all: nibbler
 nibbler: *.c *.h
 	$(CC) $(CFLAGS) -o $@ *.c $(LDFLAGS)
 
+nibbler_debug: *.c *.h
+	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) -o $@ *.c $(LDFLAGS)
+
 clean:
-	rm -f nibbler
+	rm -f nibbler nibbler_debug
