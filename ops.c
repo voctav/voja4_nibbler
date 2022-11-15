@@ -19,6 +19,7 @@
 
 #include "ops.h"
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,6 +269,7 @@ void maybe_call_or_jump(memory_addr_t dst_addr, struct vm_state *vm)
 {
 	if (dst_addr == SFR_JSR) {
 		if (vm->reg_sp == MAX_STACK_DEPTH) {
+			kill(0, SIGUSR1); /* Trigger UI cleanup. */
 			fprintf(stderr, "Stack overflow.\n");
 			exit(1);
 		}
@@ -657,6 +659,7 @@ void op_rrc(const struct vm_instruction *instr, const struct instruction_descrip
 void op_ret(const struct vm_instruction *instr, const struct instruction_descriptor *descr, struct vm_state *vm)
 {
 	if (!vm->reg_sp) {
+		kill(0, SIGUSR1); /* Trigger UI cleanup. */
 		fprintf(stderr, "Stack underflow.\n");
 		exit(1);
 	}

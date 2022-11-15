@@ -66,19 +66,37 @@ enum {
 	P_PIXEL_DIM0 = 2,
 };
 
-void finish(int sig)
+bool need_cleanup; /* True iff ncurses is initialized and needs cleanup. */
+
+void cleanup()
 {
-	endwin();
-	exit(0);
+	if (need_cleanup) {
+		endwin();
+		need_cleanup = false;
+	}
+}
+
+void handle_signal(int sig)
+{
+	cleanup();
+	/* Don't exit on SIGUSR1 so error can be printed after UI cleanup. */
+	if (sig != SIGUSR1) {
+		exit(0);
+	}
 }
 
 void init_ui(struct ui *ui, int step_mode)
 {
 	memset(ui, 0, sizeof(struct ui));
 
-	signal(SIGINT, finish);
-	signal(SIGTERM, finish);
+	atexit(cleanup);
+	signal(SIGINT, handle_signal);
+	signal(SIGTERM, handle_signal);
+	signal(SIGUSR1, handle_signal); /* Custom signal to cleanup UI on error. */
 
+	need_cleanup = true;
+
+	/* Required to display window borders correctly when using UTF-8. */
 	setlocale(LC_ALL, "");
 
 	initscr();
@@ -126,7 +144,7 @@ void init_ui(struct ui *ui, int step_mode)
 
 void exit_ui(struct ui *ui)
 {
-	finish(0);
+	cleanup();
 }
 
 void maybe_update_pages(const struct vm_state *vm, struct ui *ui)

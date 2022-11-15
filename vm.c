@@ -23,6 +23,7 @@
 #include "ops.h"
 #include "ui.h"
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,10 +82,12 @@ void vm_init(struct vm_state *vm)
 void vm_decode_next(const struct program *prog, struct vm_state *vm, struct vm_instruction *vmi)
 {
 	if (vm->reg_pc > prog->length) {
+		kill(0, SIGUSR1); /* Trigger UI cleanup. */
 		fprintf(stderr, "Program jumped beyond last instruction.\n");
 		exit(1);
 	}
 	if (vm->reg_pc == prog->length) {
+		kill(0, SIGUSR1); /* Trigger UI cleanup. */
 		fprintf(stderr, "Program finished.\n");
 		exit(0);
 	}

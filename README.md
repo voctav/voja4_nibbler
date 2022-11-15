@@ -74,9 +74,6 @@ There a lot more work to be done on the UI.
 
 ## Known Issues
 
-VM crashes (e.g. stack overflow/underflow) cause abrupt termination and leave
-the console in a bad state.
-
 Terminal colors are not reset correctly on exit. This should have a smaller
 impact now that the first 8 colors are not redefined.
 
