@@ -25,13 +25,13 @@
 
 const uint8_t HEADER_MAGIC[] = {0x00, 0xff, 0x00, 0xff, 0xa5, 0xc3};
 
-uint16_t read_protocol_word(void *buffer)
+uint16_t read_protocol_word(const void *buffer)
 {
-	uint8_t *ptr = (uint8_t *) buffer;
+	const uint8_t *ptr = (const uint8_t *) buffer;
 	return ptr[0] | (ptr[1] << 8);
 }
 
-struct program *load_program(void *buffer, size_t size)
+struct program *load_program(const void *buffer, size_t size)
 {
 	if (size < sizeof(HEADER_MAGIC) + 4) {
 		fprintf(stderr, "Buffer size too small: %zu < %zu.\n",
@@ -39,7 +39,7 @@ struct program *load_program(void *buffer, size_t size)
 		return NULL;
 	}
 
-	uint8_t *ptr = (uint8_t *) buffer;
+	const uint8_t *ptr = (const uint8_t *) buffer;
 
 	if (memcmp(ptr, HEADER_MAGIC, sizeof(HEADER_MAGIC))) {
 		fprintf(stderr, "Invalid magic: %02hhx %02hhx %02hhx %02hhx %02hhx %02hhx.\n",
@@ -82,7 +82,7 @@ struct program *load_program(void *buffer, size_t size)
 	return prg;
 }
 
-void *read_file(char *path, size_t *size)
+void *read_file(const char *path, size_t *size)
 {
 	FILE *f = fopen(path, "rb");
 	if (!f) {

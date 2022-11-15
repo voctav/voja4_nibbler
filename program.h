@@ -41,8 +41,8 @@ struct program {
 	program_word_t instructions[PROGRAM_MEMORY_SIZE];
 };
 
-struct program *load_program(void *buffer, size_t size);
+struct program *load_program(const void *buffer, size_t size);
 
-void *read_file(char *path, size_t *size);
+void *read_file(const char *path, size_t *size);
 
 #endif /* _PROGRAM_H */
