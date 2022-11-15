@@ -12,4 +12,4 @@ nibbler_debug: *.c *.h
 	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) -o $@ *.c $(LDFLAGS)
 
 clean:
-	rm -f nibbler nibbler_debug
+	rm -f nibbler nibbler_debug *.exe

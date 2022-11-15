@@ -2,24 +2,48 @@
 
 _Eats nibbles for breakfast._
 
-## Requirements
+## Building
 
-Modern C compiler and ncurses library. Only tested on Linux.
+### Requirements
 
-## Basic Usage
+Modern C compiler, make, and ncurses library (development files).
+
+## Linux
+
+To install ncurses library development files on Ubuntu/Debian:
+```
+sudo apt-get install ncurses-dev
+```
 
 To build:
 ```
 make
 ```
 
-To run:
+## Windows (MSYS2)
+
+Only MSYS2 platform was tested on Windows. Ensure `gcc` and `make` are installed
+before continuing.
+
+To install ncurses library development files:
 ```
-./nibbler file.bin
+pacman -S ncurses-devel
 ```
 
-There are some sample binary programs in `examples/`, which are assembled from
-the official badge tools repo.
+To build:
+```
+make
+```
+
+## Basic Usage
+
+To run:
+```
+./nibbler file.hex
+```
+
+There are some sample binaries that work with the emulator in `examples/`.
+These have been assembled from the official badge tools repo.
 
 Keys:
   * Q - end program and exit.
