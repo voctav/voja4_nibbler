@@ -290,7 +290,7 @@ void update_ui(struct vm_state *vm, struct ui *ui)
 		wprintw(ui->status, "Update delay (ns):    %-10lld",
 				now - ui->t_last_ui_update);
 		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "PC:        %03hhx", vm->reg_pc);
+		wprintw(ui->status, "PC:        %03hx", vm->reg_pc);
 		wmove(ui->status, row++, 1);
 		wprintw(ui->status, "SP:        %hhx", vm->reg_sp);
 		wmove(ui->status, row++, 1);
