@@ -119,9 +119,9 @@ void vm_update_user_sync(struct vm_state *vm)
 
 void vm_update_in_reg(struct vm_state *vm) {
 	if (vm->reg_wr_flags & WR_FLAG_IN_OUT_POS)
-		&vm->reg_in_b = 0xf;
+		vm->reg_in_b = 0xf;
 	else
-		&vm->reg_in = 0xf;
+		vm->reg_in = 0xf;
 }
 
 void vm_execute(struct program *prg, int step_mode)
