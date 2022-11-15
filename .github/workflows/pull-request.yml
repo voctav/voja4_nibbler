@@ -1,0 +1,19 @@
+name: Pull Request
+
+on: pull_request
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout repo
+      uses: actions/checkout@v3
+    - name: set outputs
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: build app
+      run: make
+    - name: upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        path: ./nibbler
+        name: "nibbler-linux-amd64-${{ steps.vars.outputs.sha_short }}"
