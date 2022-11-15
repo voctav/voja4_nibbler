@@ -117,14 +117,17 @@ void vm_update_user_sync(struct vm_state *vm)
 	}
 }
 
-void vm_execute(struct program *prg, int step_mode)
+void vm_execute(struct program *prg, int ui_options)
 {
 	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
 	vm->prg = prg;
 	vm_init(vm);
 
 	struct ui ui;
-	init_ui(&ui, step_mode);
+	init_ui(&ui, ui_options);
+
+	/* do one pass of UI so single-step mode will start on first instruction */
+	update_ui(vm, &ui);
 
 	while (!ui.quit) {
 		vm_wait_cycle(vm);

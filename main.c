@@ -19,6 +19,7 @@
  */
 
 #include "program.h"
+#include "ui.h"
 #include "vm.h"
 
 #include <stddef.h>
@@ -29,17 +30,21 @@
 
 void output_usage(const char* executable_name) {
 	fprintf(stderr, "Nibbler - VM for Voja's 4-bit processor. Eats nibbles for breakfast.\n");
-	fprintf(stderr, "Usage: %s <[-s]> <file.bin>\n", executable_name);
+	fprintf(stderr, "Usage: %s [-s] [-r] <file.bin>\n", executable_name);
 	fprintf(stderr, "  -s: start in step mode, default is to start running\n");
+	fprintf(stderr, "  -r: use red for page display to simulate LED color, default is gray\n");
 }
 
 int main(int argc, char *argv[]) {
 	int opt;
-	int step_mode = 0;
-	while ((opt = getopt(argc, argv, "s")) != -1) {
+	int ui_options = 0;
+	while ((opt = getopt(argc, argv, "sr")) != -1) {
 		switch (opt) {
 		case 's':
-			step_mode = 1;
+			ui_options |= STEP_MODE;
+			break;
+		case 'r':
+			ui_options |= RED_MODE;
 			break;
 		default:
 			output_usage(argv[0]);
@@ -59,7 +64,7 @@ int main(int argc, char *argv[]) {
 	if (!prg) {
 		exit(EXIT_FAILURE);
 	}
-	vm_execute(prg, step_mode);
+	vm_execute(prg, ui_options);
 	free(prg);
 
 	return EXIT_SUCCESS;

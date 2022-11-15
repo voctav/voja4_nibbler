@@ -42,7 +42,10 @@ struct ui {
 	bool single_step;
 };
 
-void init_ui(struct ui *ui, int step_mode);
+#define STEP_MODE 1
+#define RED_MODE 2
+
+void init_ui(struct ui *ui, int ui_options);
 
 /* The UI can interact with the memory, e.g. to override the page register. */
 void update_ui(struct vm_state *vm, struct ui *ui);
