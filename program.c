@@ -25,14 +25,17 @@
 
 const uint8_t HEADER_MAGIC[] = {0x00, 0xff, 0x00, 0xff, 0xa5, 0xc3};
 
-uint16_t read_protocol_word(void *buffer) {
+uint16_t read_protocol_word(void *buffer)
+{
 	uint8_t *ptr = (uint8_t *) buffer;
 	return ptr[0] | (ptr[1] << 8);
 }
 
-struct program *load_program(void *buffer, size_t size) {
+struct program *load_program(void *buffer, size_t size)
+{
 	if (size < sizeof(HEADER_MAGIC) + 4) {
-		fprintf(stderr, "Buffer size too small: %zu < %zu.\n", size, sizeof(HEADER_MAGIC) + 4);
+		fprintf(stderr, "Buffer size too small: %zu < %zu.\n",
+			size, sizeof(HEADER_MAGIC) + 4);
 		return NULL;
 	}
 
@@ -40,7 +43,7 @@ struct program *load_program(void *buffer, size_t size) {
 
 	if (memcmp(ptr, HEADER_MAGIC, sizeof(HEADER_MAGIC))) {
 		fprintf(stderr, "Invalid magic: %02hhx %02hhx %02hhx %02hhx %02hhx %02hhx.\n",
-				ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
+			ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5]);
 		return NULL;
 	}
 
@@ -49,7 +52,8 @@ struct program *load_program(void *buffer, size_t size) {
 	ptr += sizeof(uint16_t);
 
 	if (size != sizeof(HEADER_MAGIC) + 4 + length * 2) {
-		fprintf(stderr, "Buffer size inconsistent with program length: %zu != %zu.\n", size, sizeof(HEADER_MAGIC) + 4 + length);
+		fprintf(stderr, "Buffer size inconsistent with program length: %zu != %zu.\n",
+			size, sizeof(HEADER_MAGIC) + 4 + length);
 		return NULL;
 	}
 
@@ -68,7 +72,8 @@ struct program *load_program(void *buffer, size_t size) {
 	uint16_t checksum = read_protocol_word(ptr);
 	if (computed_checksum != checksum) {
 		free(prg);
-		fprintf(stderr, "Bad checksum: computed %04x, expected %04x.\n", computed_checksum, checksum);
+		fprintf(stderr, "Bad checksum: computed %04x, expected %04x.\n",
+			computed_checksum, checksum);
 		return NULL;
 	}
 
