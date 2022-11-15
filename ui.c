@@ -150,16 +150,20 @@ void exit_ui(struct ui *ui)
 void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
 {
 	memory_word_t page = vm->reg_page;
+	memory_word_t next_page = (page + 1) % NUM_PAGES;
 	memory_word_t dimmer = vm->reg_dimmer;
 	bool matrix_off = vm->reg_wr_flags & WR_FLAG_MATRIX_OFF;
 	if (ui->last_dimmer == dimmer && matrix_off == ui->last_matrix_off &&
-		!memcmp(&ui->last_pages[0][0], &vm->pages[page][0], DISPLAY_PAGES * PAGE_SIZE * sizeof(memory_word_t))) {
+			!memcmp(&ui->last_pages[0][0], &vm->pages[page][0], PAGE_SIZE * sizeof(memory_word_t)) &&
+			!memcmp(&ui->last_pages[1][0], &vm->pages[next_page][0], PAGE_SIZE * sizeof(memory_word_t))) {
 		return;
 	}
 
 	ui->last_dimmer = dimmer;
 	ui->last_matrix_off = matrix_off;
-	memcpy(&ui->last_pages[0][0], &vm->pages[page][0], DISPLAY_PAGES * PAGE_SIZE * sizeof(memory_word_t));
+	/* TODO(octav): Improve speed for updates to a small number of pixels. */
+	memcpy(&ui->last_pages[0][0], &vm->pages[page][0], PAGE_SIZE * sizeof(memory_word_t));
+	memcpy(&ui->last_pages[1][0], &vm->pages[next_page][0], PAGE_SIZE * sizeof(memory_word_t));
 
 	int pixel_on_attr, pixel_off_attr;
 	if (has_colors()) {
