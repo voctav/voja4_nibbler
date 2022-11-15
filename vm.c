@@ -69,8 +69,11 @@ long SYNC_PERIODS_USEC[] = {
 	1000000,
 };
 
-void vm_init(struct vm_state *vm)
+void vm_init(struct vm_state *vm, struct program *prg)
 {
+	free(vm->prg);
+	vm->prg = prg;
+
 	vm->reg_ser_ctrl = SERIAL_BAUD_9600;
 	vm->reg_auto_off = 0x2;
 	vm->reg_dimmer = 0xf;
@@ -79,11 +82,17 @@ void vm_init(struct vm_state *vm)
 	get_time(&vm->t_start);
 }
 
-void vm_decode_next(const struct program *prog, struct vm_state *vm, struct vm_instruction *vmi)
+void vm_destroy(struct vm_state *vm)
+{
+	free(vm->prg);
+	vm->prg = NULL;
+}
+
+void vm_decode_next(struct vm_state *vm, struct vm_instruction *vmi)
 {
 	/* Should not happen as the program counter cannot exceed the size of program memory. */
 	assert(vm->reg_pc < PROGRAM_MEMORY_SIZE);
-	program_word_t pi = prog->instructions[vm->reg_pc];
+	program_word_t pi = vm->prg->instructions[vm->reg_pc];
 	vm->reg_pc++;
 	if (vm->reg_pc == PROGRAM_MEMORY_SIZE) {
 		vm->reg_pc = 0; /* Loop back to the first instruction. */
@@ -127,8 +136,8 @@ void vm_update_in_reg(struct vm_state *vm) {
 void vm_execute(struct program *prg, int ui_options)
 {
 	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
-	vm->prg = prg;
-	vm_init(vm);
+	vm_init(vm, prg); /* vm takes ownership of prg. */
+	prg = NULL;
 
 	struct ui ui;
 	init_ui(&ui, ui_options);
@@ -142,7 +151,7 @@ void vm_execute(struct program *prg, int ui_options)
 		vm_update_in_reg(vm);
 
 		struct vm_instruction vmi;
-		vm_decode_next(prg, vm, &vmi);
+		vm_decode_next(vm, &vmi);
 		const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
 		descr->op->op_fn(&vmi, descr, vm);
 
@@ -153,6 +162,7 @@ void vm_execute(struct program *prg, int ui_options)
 
 	exit_ui(&ui);
 
+	vm_destroy(vm);
 	free(vm);
 }
 

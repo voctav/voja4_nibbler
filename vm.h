@@ -147,7 +147,7 @@ typedef uint16_t memory_addr_t;
 
 /* The state of a running virtual machine. */
 struct vm_state {
-	const struct program *prg;
+	struct program *prg; /* Owned by vm_state. */
 
 	/* All user accessible memory. Union is used to allow different views of it. */
 	union {
@@ -241,9 +241,13 @@ struct vm_instruction {
 	uint8_t nibble3;
 };
 
-void vm_init(struct vm_state *vm);
+/* Initializes the VM with the given program. vm takes ownership of prg. */
+void vm_init(struct vm_state *vm, struct program *prg);
 
-void vm_decode_next(const struct program *prog, struct vm_state *vm, struct vm_instruction *out);
+/* Cleans up the VM state. */
+void vm_destroy(struct vm_state *vm);
+
+void vm_decode_next(struct vm_state *vm, struct vm_instruction *out);
 
 void vm_execute(struct program *prg, int ui_options);
 
