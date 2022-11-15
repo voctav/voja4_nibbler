@@ -67,7 +67,7 @@ uint8_t seed_to_nibble(uint32_t seed)
 uint8_t set_rng_seed(struct rng_state *rng, uint8_t seed)
 {
 	if (seed == RNG_USE_RANDOM_SEED) {
-		getrandom(&rng->seed, sizeof(rng->seed), 0 /* flags */);
+		while (sizeof(rng->seed) != getrandom(&rng->seed, sizeof(rng->seed), 0 /* flags */)) {}
 	} else {
 		rng->seed = seed_from_nibble(seed);
 	}
