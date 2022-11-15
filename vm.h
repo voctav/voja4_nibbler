@@ -247,7 +247,8 @@ void vm_init(struct vm_state *vm, struct program *prg);
 /* Cleans up the VM state. */
 void vm_destroy(struct vm_state *vm);
 
-void vm_decode_next(struct vm_state *vm, struct vm_instruction *out);
+/* Returns the time to wait until the start of the next cycle in usec. */
+long vm_get_cycle_wait_usec(struct vm_state *vm);
 
 void vm_execute(struct program *prg, int ui_options);
 

@@ -100,18 +100,17 @@ void vm_decode_next(struct vm_state *vm, struct vm_instruction *vmi)
 	decode_instruction(pi, vmi);
 }
 
-/* Sleeps if necessary to synchronize to the start of the next clock cycle. */
-void vm_wait_cycle(struct vm_state *vm)
+long vm_get_cycle_wait_usec(struct vm_state *vm)
 {
 	vm_clock_t now = get_vm_clock(&vm->t_start);
 	vm->t_cycle_last_sleep = now;
 	long elapsed_usec = vm_clock_as_usec(now - vm->t_cycle_start);
 	long period_usec = CLOCK_PERIODS_USEC[vm->reg_clock];
-	if (period_usec > elapsed_usec) {
-		usleep(period_usec - elapsed_usec);
+	if (period_usec >= elapsed_usec) {
+		return period_usec - elapsed_usec;
+	} else {
+		return 0;
 	}
-
-	vm->t_cycle_start = get_vm_clock(&vm->t_start);
 }
 
 /* Updates UserSync flag. */
@@ -146,7 +145,11 @@ void vm_execute(struct program *prg, int ui_options)
 	update_ui(vm, &ui);
 
 	while (!ui.quit) {
-		vm_wait_cycle(vm);
+		long delay_usec = vm_get_cycle_wait_usec(vm);
+		usleep(delay_usec);
+
+		vm->t_cycle_start = get_vm_clock(&vm->t_start);
+
 		vm_update_user_sync(vm);
 		vm_update_in_reg(vm);
 
