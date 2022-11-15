@@ -253,6 +253,4 @@ long vm_get_cycle_wait_usec(struct vm_state *vm);
 /* Executes one cycle of the VM. */
 void vm_execute_cycle(struct vm_state *vm);
 
-void vm_execute(struct program *prg, int ui_options);
-
 #endif /* _VM_H */

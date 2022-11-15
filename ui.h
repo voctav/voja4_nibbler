@@ -25,7 +25,6 @@
 
 #include <stdbool.h>
 #include <ncurses.h>
-#include <time.h>
 
 #define DISPLAY_PAGES 2
 
@@ -45,11 +44,10 @@ struct ui {
 #define STEP_MODE 1
 #define RED_MODE 2
 
-void init_ui(struct ui *ui, int ui_options);
+void ui_init(struct ui *ui, int ui_options);
 
-/* The UI can interact with the memory, e.g. to override the page register. */
-void update_ui(struct vm_state *vm, struct ui *ui);
+void ui_destroy(struct ui *ui);
 
-void exit_ui(struct ui *ui);
+bool ui_run(struct ui *ui, const char *binary_path);
 
 #endif /* _UI_H */

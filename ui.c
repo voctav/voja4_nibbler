@@ -20,12 +20,15 @@
 #include "ui.h"
 
 #include "ops.h"
+#include "program.h"
+#include "vm.h"
 
 #include <locale.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 const int STATUS_WIDTH = 0x40;
 const int STATUS_HEIGHT = 0x20;
@@ -85,7 +88,7 @@ void handle_signal(int sig)
 	}
 }
 
-void init_ui(struct ui *ui, int ui_options)
+void ui_init(struct ui *ui, int ui_options)
 {
 	memset(ui, 0, sizeof(struct ui));
 
@@ -151,7 +154,7 @@ void init_ui(struct ui *ui, int ui_options)
 	ui->single_step = (ui_options & STEP_MODE) == STEP_MODE;
 }
 
-void exit_ui(struct ui *ui)
+void ui_destroy(struct ui *ui)
 {
 	cleanup();
 }
@@ -276,7 +279,7 @@ void handle_keys(struct vm_state *vm, struct ui *ui, bool loop)
 	} while (loop);
 }
 
-void update_ui(struct vm_state *vm, struct ui *ui)
+void ui_update(struct ui *ui, struct vm_state *vm)
 {
 	vm_clock_t now = get_vm_clock(&vm->t_start);
 
@@ -352,4 +355,37 @@ void update_ui(struct vm_state *vm, struct ui *ui)
 	if (ui->single_step) {
 		handle_keys(vm, ui, true /* loop */);
 	}
+}
+
+bool ui_run(struct ui *ui, const char *binary_path)
+{
+	size_t size;
+	void *buf = read_file(binary_path, &size);
+	struct program *prg = load_program(buf, size);
+	free(buf);
+	buf = NULL;
+	if (!prg) {
+		return false;
+	}
+
+	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
+	vm_init(vm, prg); /* vm takes ownership of prg. */
+	prg = NULL;
+
+	/* do one pass of UI so single-step mode will start on first instruction */
+	ui_update(ui, vm);
+
+	while (!ui->quit) {
+		long delay_usec = vm_get_cycle_wait_usec(vm);
+		usleep(delay_usec);
+
+		vm_execute_cycle(vm);
+
+		ui_update(ui, vm);
+	}
+
+	vm_destroy(vm);
+	free(vm);
+
+	return true;
 }

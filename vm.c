@@ -147,31 +147,3 @@ void vm_execute_cycle(struct vm_state *vm)
 
 	vm->t_cycle_end = get_vm_clock(&vm->t_start);
 }
-
-void vm_execute(struct program *prg, int ui_options)
-{
-	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
-	vm_init(vm, prg); /* vm takes ownership of prg. */
-	prg = NULL;
-
-	struct ui ui;
-	init_ui(&ui, ui_options);
-
-	/* do one pass of UI so single-step mode will start on first instruction */
-	update_ui(vm, &ui);
-
-	while (!ui.quit) {
-		long delay_usec = vm_get_cycle_wait_usec(vm);
-		usleep(delay_usec);
-
-		vm_execute_cycle(vm);
-
-		update_ui(vm, &ui);
-	}
-
-	exit_ui(&ui);
-
-	vm_destroy(vm);
-	free(vm);
-}
-

@@ -18,24 +18,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "program.h"
 #include "ui.h"
-#include "vm.h"
 
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-void output_usage(const char* executable_name) {
+void output_usage(const char* executable_name)
+{
 	fprintf(stderr, "Nibbler - VM for Voja's 4-bit processor. Eats nibbles for breakfast.\n");
-	fprintf(stderr, "Usage: %s [-s] [-r] <file.bin>\n", executable_name);
+	fprintf(stderr, "Usage: %s [-s] [-r] <file.hex>\n", executable_name);
 	fprintf(stderr, "  -s: start in step mode, default is to start running\n");
 	fprintf(stderr, "  -r: use red for page display to simulate LED color, default is gray\n");
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	int opt;
 	int ui_options = 0;
 	while ((opt = getopt(argc, argv, "sr")) != -1) {
@@ -56,15 +54,13 @@ int main(int argc, char *argv[]) {
 		output_usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
+	const char *binary_path = argv[optind];
 
-	size_t size;
-	void *buf = read_file(argv[optind], &size);
-	struct program *prg = load_program(buf, size);
-	free(buf);
-	if (!prg) {
-		exit(EXIT_FAILURE);
-	}
-	vm_execute(prg, ui_options);
+	struct ui *ui = calloc(1, sizeof(struct ui));
+	ui_init(ui, ui_options);
+	bool success = ui_run(ui, binary_path);
+	ui_destroy(ui);
+	free(ui);
 
-	return EXIT_SUCCESS;
+	return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
