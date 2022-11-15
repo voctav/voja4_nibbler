@@ -85,7 +85,7 @@ void handle_signal(int sig)
 	}
 }
 
-void init_ui(struct ui *ui, int step_mode)
+void init_ui(struct ui *ui, int ui_options)
 {
 	memset(ui, 0, sizeof(struct ui));
 
@@ -106,6 +106,7 @@ void init_ui(struct ui *ui, int step_mode)
 	cbreak();
 
 	if (has_colors()) {
+		int red_mode = (ui_options & RED_MODE) == RED_MODE;
 		start_color();
 
 		if (can_change_color() && COLORS >= C_PIXEL_DIM0 + DIMMER_LEVELS) {
@@ -115,6 +116,10 @@ void init_ui(struct ui *ui, int step_mode)
 				short r = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
 				short g = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
 				short b = 1000 * (i + 1) / (DIMMER_LEVELS + 1);
+				if (red_mode) {
+					g = 0;
+					b = 0;
+				}
 				init_color(C_PIXEL_DIM0 + i, r, g, b);
 			}
 			init_pair(P_PIXEL_OFF, C_BACKGROUND, C_BACKGROUND);
@@ -124,7 +129,11 @@ void init_ui(struct ui *ui, int step_mode)
 		} else {
 			init_pair(P_PIXEL_OFF, COLOR_WHITE, COLOR_BLACK);
 			for (int i = 0; i < DIMMER_LEVELS; i++) {
-				init_pair(P_PIXEL_DIM0 + i, COLOR_WHITE, COLOR_BLACK);
+				if (red_mode) {
+					init_pair(P_PIXEL_DIM0 + i, COLOR_RED, COLOR_BLACK);
+				} else {
+					init_pair(P_PIXEL_DIM0 + i, COLOR_WHITE, COLOR_BLACK);
+				}
 			}
 		}
 	}
@@ -139,7 +148,7 @@ void init_ui(struct ui *ui, int step_mode)
 	wtimeout(ui->status, 0);
 	keypad(ui->status, true);
 
-	ui->single_step = step_mode;
+	ui->single_step = (ui_options & STEP_MODE) == STEP_MODE;
 }
 
 void exit_ui(struct ui *ui)
