@@ -76,6 +76,9 @@ void vm_init(struct vm_state *vm)
 	vm->reg_dimmer = 0xf;
 	vm->reg_random = init_rng(&vm->rng);
 
+	vm->reg_in = 0xf;
+	vm->reg_in_b = 0xf;
+
 	get_time(&vm->t_start);
 }
 
