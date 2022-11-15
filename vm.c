@@ -76,9 +76,6 @@ void vm_init(struct vm_state *vm)
 	vm->reg_dimmer = 0xf;
 	vm->reg_random = init_rng(&vm->rng);
 
-	vm->reg_in = 0xf;
-	vm->reg_in_b = 0xf;
-
 	get_time(&vm->t_start);
 }
 
@@ -120,6 +117,13 @@ void vm_update_user_sync(struct vm_state *vm)
 	}
 }
 
+void vm_update_in_reg(struct vm_state *vm) {
+	if (vm->reg_wr_flags & WR_FLAG_IN_OUT_POS)
+		&vm->reg_in_b = 0xf;
+	else
+		&vm->reg_in = 0xf;
+}
+
 void vm_execute(struct program *prg, int step_mode)
 {
 	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
@@ -132,6 +136,7 @@ void vm_execute(struct program *prg, int step_mode)
 	while (!ui.quit) {
 		vm_wait_cycle(vm);
 		vm_update_user_sync(vm);
+		vm_update_in_reg(vm);
 
 		struct vm_instruction vmi;
 		vm_decode_next(prg, vm, &vmi);
