@@ -67,7 +67,9 @@ struct program *load_program(void *buffer, size_t size) {
 
 	uint16_t checksum = read_protocol_word(ptr);
 	if (computed_checksum != checksum) {
-		fprintf(stderr, "Warning: Bad checksum: computed %04x, expected %04x.\n", computed_checksum, checksum);
+		free(prg);
+		fprintf(stderr, "Bad checksum: computed %04x, expected %04x.\n", computed_checksum, checksum);
+		return NULL;
 	}
 
 	prg->checksum = checksum;
