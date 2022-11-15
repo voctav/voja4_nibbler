@@ -56,10 +56,10 @@ int main(int argc, char *argv[]) {
 	void *buf = read_file(argv[optind], &size);
 	struct program *prg = load_program(buf, size);
 	if (!prg) {
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	vm_execute(prg, step_mode);
 	free(prg);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

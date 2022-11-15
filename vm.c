@@ -84,12 +84,12 @@ void vm_decode_next(const struct program *prog, struct vm_state *vm, struct vm_i
 	if (vm->reg_pc > prog->length) {
 		kill(0, SIGUSR1); /* Trigger UI cleanup. */
 		fprintf(stderr, "Program jumped beyond last instruction.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	if (vm->reg_pc == prog->length) {
 		kill(0, SIGUSR1); /* Trigger UI cleanup. */
 		fprintf(stderr, "Program finished.\n");
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	program_word_t pi = prog->instructions[vm->reg_pc];
 	vm->reg_pc++;

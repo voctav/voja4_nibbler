@@ -81,7 +81,7 @@ void handle_signal(int sig)
 	cleanup();
 	/* Don't exit on SIGUSR1 so error can be printed after UI cleanup. */
 	if (sig != SIGUSR1) {
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 }
 

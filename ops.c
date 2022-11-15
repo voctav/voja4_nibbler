@@ -271,7 +271,7 @@ void maybe_call_or_jump(memory_addr_t dst_addr, struct vm_state *vm)
 		if (vm->reg_sp == MAX_STACK_DEPTH) {
 			kill(0, SIGUSR1); /* Trigger UI cleanup. */
 			fprintf(stderr, "Stack overflow.\n");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		vm->stack[vm->reg_sp * 3] = vm->reg_pc & 0xf;
 		vm->stack[vm->reg_sp * 3 + 1] = (vm->reg_pc >> 4) & 0xf;
@@ -661,7 +661,7 @@ void op_ret(const struct vm_instruction *instr, const struct instruction_descrip
 	if (!vm->reg_sp) {
 		kill(0, SIGUSR1); /* Trigger UI cleanup. */
 		fprintf(stderr, "Stack underflow.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	uint8_t n = descr->src->get_val(instr, vm);
 	vm->reg_r0 = n;
