@@ -221,9 +221,11 @@ void handle_keys(struct vm_state *vm, struct ui *ui)
 		break;
 	case KEY_LEFT:
 		vm->reg_page = (vm->reg_page - 1) & 0xf;
+		ui->vm_dirty = true;
 		break;
 	case KEY_RIGHT:
 		vm->reg_page = (vm->reg_page + 1) & 0xf;
+		ui->vm_dirty = true;
 		break;
 	case '\t':
 		key = 0;
@@ -273,6 +275,7 @@ void handle_keys(struct vm_state *vm, struct ui *ui)
 	if (key >= 0) {
 		vm->reg_key_status = KEY_STATUS_JUST_PRESS | KEY_STATUS_LAST_PRESS | KEY_STATUS_ANY_PRESS;
 		vm->reg_key_reg = key;
+		ui->vm_dirty = true;
 	}
 }
 
@@ -282,6 +285,9 @@ void ui_update(struct ui *ui, struct vm_state *vm)
 
 	handle_keys(vm, ui);
 	if (ui->quit) {
+		return;
+	}
+	if (!ui->vm_dirty) {
 		return;
 	}
 
@@ -348,6 +354,8 @@ void ui_update(struct ui *ui, struct vm_state *vm)
 		wrefresh(ui->status);
 		ui->t_last_ui_update = now;
 	}
+
+	ui->vm_dirty = false;
 }
 
 bool ui_run(struct ui *ui, const char *binary_path)
@@ -365,6 +373,8 @@ bool ui_run(struct ui *ui, const char *binary_path)
 	vm_init(vm, prg); /* vm takes ownership of prg. */
 	prg = NULL;
 
+	ui->vm_dirty = true;
+
 	while (!ui->quit) {
 		ui_update(ui, vm);
 		if (ui->paused) {
@@ -375,6 +385,7 @@ bool ui_run(struct ui *ui, const char *binary_path)
 		usleep(delay_usec);
 
 		vm_execute_cycle(vm);
+		ui->vm_dirty = true;
 
 		if (ui->single_step) {
 			ui->paused = true;

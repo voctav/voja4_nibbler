@@ -29,6 +29,8 @@
 #define DISPLAY_PAGES 2
 
 struct ui {
+	/* True iff the VM state may have changed since the last update. */
+	bool vm_dirty;
 	memory_word_t last_pages[DISPLAY_PAGES][PAGE_SIZE];
 	memory_word_t last_dimmer;
 	bool last_matrix_off;
