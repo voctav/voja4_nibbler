@@ -58,6 +58,10 @@ struct program *load_program(const void *buffer, size_t size)
 	}
 
 	struct program *prg = calloc(1, sizeof(struct program));
+	if (!prg) {
+		fprintf(stderr, "Failed to allocate memory for program.\n");
+		return NULL;
+	}
 	memcpy(&prg->header, buffer, sizeof(HEADER_MAGIC));
 	prg->length = length;
 

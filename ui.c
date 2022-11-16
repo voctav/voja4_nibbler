@@ -98,7 +98,11 @@ void handle_signal(int sig)
 void ui_init(struct ui *ui, int ui_options)
 {
 	memset(ui, 0, sizeof(struct ui));
+	ui->ui_options = ui_options;
+}
 
+void ui_start(struct ui *ui)
+{
 	atexit(cleanup);
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
@@ -116,7 +120,7 @@ void ui_init(struct ui *ui, int ui_options)
 	cbreak();
 
 	if (has_colors()) {
-		int red_mode = (ui_options & RED_MODE) == RED_MODE;
+		bool red_mode = ui->ui_options & RED_MODE;
 		start_color();
 
 		if (can_change_color() && COLORS >= C_PIXEL_DIM0 + DIMMER_LEVELS) {
@@ -157,8 +161,6 @@ void ui_init(struct ui *ui, int ui_options)
 	wrefresh(ui->status);
 	wtimeout(ui->status, 0);
 	keypad(ui->status, true);
-
-	ui->paused = (ui_options & START_PAUSED) == START_PAUSED;
 }
 
 void ui_destroy(struct ui *ui)
@@ -380,9 +382,16 @@ bool ui_run(struct ui *ui, const char *binary_path)
 	}
 
 	struct vm_state *vm = calloc(1, sizeof(struct vm_state));
+	if (!vm) {
+		fprintf(stderr, "Failed to allocate VM state.\n");
+		return false;
+	}
 	vm_init(vm, prg); /* vm takes ownership of prg. */
 	prg = NULL;
 
+	ui_start(ui);
+
+	ui->paused = ui->ui_options & START_PAUSED;
 	ui->vm_dirty = true;
 	vm_clock_t t_last_update = 0;
 

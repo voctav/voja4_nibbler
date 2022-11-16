@@ -29,6 +29,8 @@
 #define DISPLAY_PAGES 2
 
 struct ui {
+	int ui_options; /* Options as bit flags. */
+
 	/* True iff the VM state may have changed since the last update. */
 	bool vm_dirty;
 	memory_word_t last_pages[DISPLAY_PAGES][PAGE_SIZE];

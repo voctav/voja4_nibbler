@@ -57,6 +57,10 @@ int main(int argc, char *argv[])
 	const char *binary_path = argv[optind];
 
 	struct ui *ui = calloc(1, sizeof(struct ui));
+	if (!ui) {
+		fprintf(stderr, "Failed to allocate memory for UI.\n");
+		exit(EXIT_FAILURE);
+	}
 	ui_init(ui, ui_options);
 	bool success = ui_run(ui, binary_path);
 	ui_destroy(ui);
