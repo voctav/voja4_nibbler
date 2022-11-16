@@ -221,18 +221,19 @@ struct vm_state {
 	};
 
 	/* Extra registers that are not directly accessible. */
-	program_addr_t reg_pc; /* Program counter. */
-	uint8_t reg_sp;        /* Stack pointer. */
-	uint8_t reg_flags;     /* Flags. */
+	program_addr_t reg_pc;	/* Program counter. */
+	uint8_t reg_sp;		/* Stack pointer. */
+	uint8_t reg_flags;	/* Flags. */
 
 	struct rng_state rng;   /* Random number generator state. */
 
-	struct timespec t_start; /* Time of VM startup. */
-	vm_clock_t t_cycle_start;
-	vm_clock_t t_cycle_end;
-	vm_clock_t t_cycle_last_sleep;
-	
-	vm_clock_t t_last_sync;
+	struct timespec t_start;	/* Timestamp of VM startup. */
+	vm_clock_t t_cycle_start;	/* Timestamp of cycle start. */
+	vm_clock_t t_cycle_end;		/* Timestamp of cycle end. */
+	vm_clock_t t_last_user_sync;	/* Timestamp of last user sync. */
+	vm_clock_t dt_last_cycle;	/* Elapsed time for the last cycle. */
+	vm_clock_t dt_last_cycle_period;	/* Elapsed time between the start of the last two cycles. */
+	vm_clock_t dt_last_user_sync_period;	/* Elapsed time between the start of the last two user syncs. */
 };
 
 struct vm_instruction {

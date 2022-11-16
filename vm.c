@@ -103,7 +103,6 @@ void vm_decode_next(struct vm_state *vm, struct vm_instruction *vmi)
 long vm_get_cycle_wait_usec(struct vm_state *vm)
 {
 	vm_clock_t now = get_vm_clock(&vm->t_start);
-	vm->t_cycle_last_sleep = now;
 	long elapsed_usec = vm_clock_as_usec(now - vm->t_cycle_start);
 	long period_usec = CLOCK_PERIODS_USEC[vm->reg_clock];
 	if (period_usec >= elapsed_usec) {
@@ -117,10 +116,12 @@ long vm_get_cycle_wait_usec(struct vm_state *vm)
 void vm_update_user_sync(struct vm_state *vm)
 {
 	vm_clock_t now = get_vm_clock(&vm->t_start);
-	long elapsed_usec = vm_clock_as_usec(now - vm->t_last_sync);
+	vm_clock_t dt = now - vm->t_last_user_sync;
+	long elapsed_usec = vm_clock_as_usec(dt);
 	long period_usec = SYNC_PERIODS_USEC[vm->reg_sync];
 	if (elapsed_usec >= period_usec) {
-		vm->t_last_sync = now;
+		vm->t_last_user_sync = now;
+		vm->dt_last_user_sync_period = dt;
 		vm->reg_rd_flags |= RD_FLAG_USER_SYNC;
 	}
 }
@@ -135,7 +136,9 @@ void vm_update_in_reg(struct vm_state *vm) {
 
 void vm_execute_cycle(struct vm_state *vm)
 {
-	vm->t_cycle_start = get_vm_clock(&vm->t_start);
+	vm_clock_t now = get_vm_clock(&vm->t_start);
+	vm->dt_last_cycle_period = now - vm->t_cycle_start;
+	vm->t_cycle_start = now;
 
 	vm_update_user_sync(vm);
 	vm_update_in_reg(vm);
@@ -146,4 +149,5 @@ void vm_execute_cycle(struct vm_state *vm)
 	descr->op->op_fn(&vmi, descr, vm);
 
 	vm->t_cycle_end = get_vm_clock(&vm->t_start);
+	vm->dt_last_cycle = vm->t_cycle_end - vm->t_cycle_start;
 }

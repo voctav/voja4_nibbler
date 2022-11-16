@@ -39,7 +39,13 @@ struct ui {
 
 	WINDOW *status;
 	WINDOW *display;
-	vm_clock_t t_last_ui_update;
+
+	vm_clock_t t_last_status_update;	/* Timestamp of the last status update. */
+
+	/* Stats. */
+	vm_clock_t dt_last_full_display_update;	/* Elapsed time for the last full display update. */
+	vm_clock_t dt_last_display_update;	/* Elapsed time for the last display update. */
+	vm_clock_t dt_last_status_update;	/* Elapsed time for the last status update. */
 
 	bool quit;
 	bool single_step;

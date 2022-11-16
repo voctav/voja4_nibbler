@@ -168,8 +168,11 @@ void ui_destroy(struct ui *ui)
 	cleanup();
 }
 
-void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
+void maybe_update_display(const struct vm_state *vm, struct ui *ui)
 {
+	vm_clock_t start = get_vm_clock(&vm->t_start);
+
+	/* Detect if nothing changed and skip update. */
 	memory_word_t page = vm->reg_page;
 	memory_word_t next_page = (page + 1) % NUM_PAGES;
 	memory_word_t dimmer = vm->reg_dimmer;
@@ -177,6 +180,8 @@ void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
 	if (ui->last_dimmer == dimmer && matrix_off == ui->last_matrix_off &&
 			!memcmp(&ui->last_pages[0][0], &vm->pages[page][0], PAGE_SIZE * sizeof(memory_word_t)) &&
 			!memcmp(&ui->last_pages[1][0], &vm->pages[next_page][0], PAGE_SIZE * sizeof(memory_word_t))) {
+		vm_clock_t end = get_vm_clock(&vm->t_start);
+		ui->dt_last_display_update = end - start;
 		return;
 	}
 
@@ -210,6 +215,81 @@ void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
 		}
 	}
 	wrefresh(ui->display);
+
+	vm_clock_t end = get_vm_clock(&vm->t_start);
+	ui->dt_last_full_display_update = end - start;
+}
+
+void maybe_update_status(const struct vm_state *vm, struct ui *ui)
+{
+	vm_clock_t start = get_vm_clock(&vm->t_start);
+
+	if (!ui->paused && vm_clock_as_usec(start - ui->t_last_status_update) < STATUS_UPDATE_USEC) {
+		return; /* Rate limit status updates when running to avoid execution slowdowns. */
+	}
+
+	bool io_pos = vm->reg_wr_flags & WR_FLAG_IN_OUT_POS;
+	int row = 1;
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Last cycle (ns):               %-10lld", vm->dt_last_cycle);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Last cycle period (ns):        %-10lld", vm->dt_last_cycle_period);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Last user sync period (ns):    %-10lld", vm->dt_last_user_sync_period);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Last full display update (ns): %-10lld", ui->dt_last_full_display_update);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Last display update (ns):      %-10lld", ui->dt_last_display_update);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Last status update (ns):       %-10lld", ui->dt_last_status_update);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "PC:        %03hx", vm->reg_pc);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "SP:        %hhx", vm->reg_sp);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Flags:     %hhx", vm->reg_flags);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 10 11 12 13 14 15");
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "%hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx",
+		vm->reg_r0, vm->reg_r1, vm->reg_r2, vm->reg_r3,
+		vm->reg_r4, vm->reg_r5, vm->reg_r6, vm->reg_r7,
+		vm->reg_r8, vm->reg_r9, vm->reg_r10, vm->reg_r11,
+		vm->reg_r12, vm->reg_r13, vm->reg_r14, vm->reg_r15);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Page:      %hhx", vm->reg_page);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Clock:     %hhx", vm->reg_clock);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Sync:      %hhx", vm->reg_sync);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Out:       %hhx", io_pos ? vm->reg_out_b : vm->reg_out);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "In:        %hhx", io_pos ? vm->reg_in_b : vm->reg_in);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "KeyStatus: %hhx", vm->reg_key_status);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "KeyReg:    %hhx", vm->reg_key_reg);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "WrFlags:   %hhx", vm->reg_wr_flags);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "RdFlags:   %hhx", vm->reg_rd_flags);
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "Dimmer:    %hhx", vm->reg_dimmer);
+
+	struct vm_instruction vmi;
+	decode_instruction(vm->prg->instructions[vm->reg_pc], &vmi);
+	const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
+	char buf[20];
+	disassemble_instruction(&vmi, descr, buf, sizeof(buf));
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "%03hx: %hhx%hhx%hhx  %-20s", vm->reg_pc, vmi.nibble1, vmi.nibble2, vmi.nibble3, buf);
+
+	wrefresh(ui->status);
+
+	vm_clock_t end = get_vm_clock(&vm->t_start);
+	ui->dt_last_status_update = end - start;
+	ui->t_last_status_update = end;
 }
 
 void handle_keys(struct vm_state *vm, struct ui *ui)
@@ -290,8 +370,6 @@ void handle_keys(struct vm_state *vm, struct ui *ui)
 
 void ui_update(struct ui *ui, struct vm_state *vm)
 {
-	vm_clock_t now = get_vm_clock(&vm->t_start);
-
 	handle_keys(vm, ui);
 	if (ui->quit) {
 		return;
@@ -300,69 +378,8 @@ void ui_update(struct ui *ui, struct vm_state *vm)
 		return;
 	}
 
-	maybe_update_pages(vm, ui);
-
-	if (ui->paused || vm_clock_as_usec(now - ui->t_last_ui_update) > STATUS_UPDATE_USEC) {
-		bool io_pos = vm->reg_wr_flags & WR_FLAG_IN_OUT_POS;
-		int row = 1;
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Prev sleep time (ns): %-10lld",
-				vm->t_cycle_start - vm->t_cycle_last_sleep);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Last cycle time (ns): %-10lld",
-				vm->t_cycle_end - vm->t_cycle_start);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Render time (ns):     %-10lld",
-				now - vm->t_cycle_end);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Update delay (ns):    %-10lld",
-				now - ui->t_last_ui_update);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "PC:        %03hx", vm->reg_pc);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "SP:        %hhx", vm->reg_sp);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Flags:     %hhx", vm->reg_flags);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 10 11 12 13 14 15");
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "%hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx",
-			vm->reg_r0, vm->reg_r1, vm->reg_r2, vm->reg_r3,
-			vm->reg_r4, vm->reg_r5, vm->reg_r6, vm->reg_r7,
-			vm->reg_r8, vm->reg_r9, vm->reg_r10, vm->reg_r11,
-			vm->reg_r12, vm->reg_r13, vm->reg_r14, vm->reg_r15);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Page:      %hhx", vm->reg_page);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Clock:     %hhx", vm->reg_clock);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Sync:      %hhx", vm->reg_sync);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Out:       %hhx", io_pos ? vm->reg_out_b : vm->reg_out);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "In:        %hhx", io_pos ? vm->reg_in_b : vm->reg_in);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "KeyStatus: %hhx", vm->reg_key_status);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "KeyReg:    %hhx", vm->reg_key_reg);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "WrFlags:   %hhx", vm->reg_wr_flags);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "RdFlags:   %hhx", vm->reg_rd_flags);
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "Dimmer:    %hhx", vm->reg_dimmer);
-
-		struct vm_instruction vmi;
-		decode_instruction(vm->prg->instructions[vm->reg_pc], &vmi);
-		const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
-		char buf[20];
-		disassemble_instruction(&vmi, descr, buf, sizeof(buf));
-		wmove(ui->status, row++, 1);
-		wprintw(ui->status, "%03hx: %hhx%hhx%hhx  %-20s", vm->reg_pc, vmi.nibble1, vmi.nibble2, vmi.nibble3, buf);
-
-		wrefresh(ui->status);
-		ui->t_last_ui_update = now;
-	}
+	maybe_update_display(vm, ui);
+	maybe_update_status(vm, ui);
 
 	ui->vm_dirty = false;
 }
