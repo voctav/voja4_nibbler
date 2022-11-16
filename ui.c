@@ -31,7 +31,7 @@
 #include <unistd.h>
 
 const int STATUS_WIDTH = 0x40;
-const int STATUS_HEIGHT = 0x20;
+const int STATUS_HEIGHT = 0x24;
 const int DISPLAY_WIDTH = 0x10;
 const int DISPLAY_HEIGHT = 0x10;
 
@@ -45,6 +45,9 @@ const int STATUS_UPDATE_USEC = 100000;	/* Minimum period between redrawing statu
  */
 const int UI_UPDATE_PERIOD_USEC = 1000;	/* Minimum period between UI updates. */
 const int MAX_UI_SLEEP_USEC = 5000;	/* Maximum time to sleep when waiting to synchronize to the next cycle. */
+
+const int DISASSEMBLE_CONTEXT_SIZE = 5;	/* Number of disassembled instructions to show before and after the current one. */
+const int DISASSEMBLE_MAX_LEN = 20;	/* Maximum length of a disassembled line. */
 
 char *CLOCK_FREQUENCIES[] = {
 	"MAX",
@@ -242,6 +245,7 @@ void maybe_update_status(const struct vm_state *vm, struct ui *ui)
 	wprintw(ui->status, "Last display update (ns):      %-10lld", ui->dt_last_display_update);
 	wmove(ui->status, row++, 1);
 	wprintw(ui->status, "Last status update (ns):       %-10lld", ui->dt_last_status_update);
+	row++;
 	wmove(ui->status, row++, 1);
 	wprintw(ui->status, "PC:        %03hx", vm->reg_pc);
 	wmove(ui->status, row++, 1);
@@ -276,14 +280,31 @@ void maybe_update_status(const struct vm_state *vm, struct ui *ui)
 	wprintw(ui->status, "RdFlags:   %hhx", vm->reg_rd_flags);
 	wmove(ui->status, row++, 1);
 	wprintw(ui->status, "Dimmer:    %hhx", vm->reg_dimmer);
+	row++;
 
-	struct vm_instruction vmi;
-	decode_instruction(vm->prg->instructions[vm->reg_pc], &vmi);
-	const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
-	char buf[20];
-	disassemble_instruction(&vmi, descr, buf, sizeof(buf));
+	/* Disassemble current instruction with a context around it. */
+	int first_pc = vm->reg_pc - DISASSEMBLE_CONTEXT_SIZE;
+	if (first_pc < 0) {
+		first_pc = 0;
+	}
+	int last_pc = vm->reg_pc + DISASSEMBLE_CONTEXT_SIZE;
+	if (last_pc >= PROGRAM_MEMORY_SIZE) {
+		last_pc = PROGRAM_MEMORY_SIZE - 1;
+	}
+	char buf[DISASSEMBLE_MAX_LEN];
 	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "%03hx: %hhx%hhx%hhx  %-20s", vm->reg_pc, vmi.nibble1, vmi.nibble2, vmi.nibble3, buf);
+	wprintw(ui->status, "ADDR:  OPC  INSTRUCTION");
+	wmove(ui->status, row++, 1);
+	wprintw(ui->status, "-----------------------");
+	for (int pc = first_pc; pc <= last_pc; pc++) {
+		struct vm_instruction vmi;
+		decode_instruction(vm->prg->instructions[pc], &vmi);
+		const struct instruction_descriptor *descr = get_instruction_descriptor(&vmi);
+		disassemble_instruction(&vmi, descr, buf, sizeof(buf));
+		wmove(ui->status, row++, 1);
+		wprintw(ui->status, "%c%03hx:  %hhx%hhx%hhx  %-*s",
+			pc == vm->reg_pc ? '>' : ' ', pc, vmi.nibble1, vmi.nibble2, vmi.nibble3, sizeof(buf), buf);
+	}
 
 	wrefresh(ui->status);
 
