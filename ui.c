@@ -369,6 +369,9 @@ bool ui_run(struct ui *ui, const char *binary_path)
 {
 	size_t size;
 	void *buf = read_file(binary_path, &size);
+	if (!buf) {
+		return false;
+	}
 	struct program *prg = load_program(buf, size);
 	free(buf);
 	buf = NULL;
