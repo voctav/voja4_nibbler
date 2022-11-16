@@ -233,56 +233,70 @@ void maybe_update_status(const struct vm_state *vm, struct ui *ui)
 
 	bool io_pos = vm->reg_wr_flags & WR_FLAG_IN_OUT_POS;
 	int row = 1;
-	wmove(ui->status, row++, 1);
+	int col = 1;
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "Last cycle (ns):               %-10lld", vm->dt_last_cycle);
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "Last cycle period (ns):        %-10lld", vm->dt_last_cycle_period);
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "Last user sync period (ns):    %-10lld", vm->dt_last_user_sync_period);
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "Last full display update (ns): %-10lld", ui->dt_last_full_display_update);
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "Last display update (ns):      %-10lld", ui->dt_last_display_update);
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "Last status update (ns):       %-10lld", ui->dt_last_status_update);
 	row++;
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "PC:        %03hx", vm->reg_pc);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "SP:        %hhx", vm->reg_sp);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "Flags:     %hhx", vm->reg_flags);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "R0 R1 R2 R3 R4 R5 R6 R7 R8 R9 10 11 12 13 14 15");
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "%hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx",
-		vm->reg_r0, vm->reg_r1, vm->reg_r2, vm->reg_r3,
-		vm->reg_r4, vm->reg_r5, vm->reg_r6, vm->reg_r7,
-		vm->reg_r8, vm->reg_r9, vm->reg_r10, vm->reg_r11,
-		vm->reg_r12, vm->reg_r13, vm->reg_r14, vm->reg_r15);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "Page:      %hhx", vm->reg_page);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "Clock:     %hhx", vm->reg_clock);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "Sync:      %hhx", vm->reg_sync);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "Out:       %hhx", io_pos ? vm->reg_out_b : vm->reg_out);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "In:        %hhx", io_pos ? vm->reg_in_b : vm->reg_in);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "KeyStatus: %hhx", vm->reg_key_status);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "KeyReg:    %hhx", vm->reg_key_reg);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "WrFlags:   %hhx", vm->reg_wr_flags);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "RdFlags:   %hhx", vm->reg_rd_flags);
-	wmove(ui->status, row++, 1);
-	wprintw(ui->status, "Dimmer:    %hhx", vm->reg_dimmer);
+
+	int regs_row = row;
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "PC:     %03hx", vm->reg_pc);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "SP:     %hhx", vm->reg_sp);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "Flags:  %hhx", vm->reg_flags);
+	row++;
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "Page:   %hhx", vm->reg_page);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "Clock:  %hhx", vm->reg_clock);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "Sync:   %hhx", vm->reg_sync);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "Out:    %hhx", io_pos ? vm->reg_out_b : vm->reg_out);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "In:     %hhx", io_pos ? vm->reg_in_b : vm->reg_in);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "KeySts: %hhx", vm->reg_key_status);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "KeyReg: %hhx", vm->reg_key_reg);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "WrFlgs: %hhx", vm->reg_wr_flags);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "RdFlgs: %hhx", vm->reg_rd_flags);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "Dimmer: %hhx", vm->reg_dimmer);
 	row++;
 
+	int asm_row = row;
+	row = regs_row;
+	col = 14;
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "R0 R1 R2 R3 R4 R5 R6 R7");
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, " %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx",
+		vm->reg_r0, vm->reg_r1, vm->reg_r2, vm->reg_r3,
+		vm->reg_r4, vm->reg_r5, vm->reg_r6, vm->reg_r7);
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, "R8 R9 10 11 12 13 14 15");
+	wmove(ui->status, row++, col);
+	wprintw(ui->status, " %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx  %hhx",
+		vm->reg_r8, vm->reg_r9, vm->reg_r10, vm->reg_r11,
+		vm->reg_r12, vm->reg_r13, vm->reg_r14, vm->reg_r15);
+
 	/* Disassemble current instruction with a context around it. */
+	row = asm_row;
+	col = 1;
 	int first_pc = vm->reg_pc - DISASSEMBLE_CONTEXT_SIZE;
 	if (first_pc < 0) {
 		first_pc = 0;
@@ -292,9 +306,9 @@ void maybe_update_status(const struct vm_state *vm, struct ui *ui)
 		last_pc = PROGRAM_MEMORY_SIZE - 1;
 	}
 	char buf[DISASSEMBLE_MAX_LEN];
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "ADDR:  OPC  INSTRUCTION");
-	wmove(ui->status, row++, 1);
+	wmove(ui->status, row++, col);
 	wprintw(ui->status, "-----------------------");
 	for (int pc = first_pc; pc <= last_pc; pc++) {
 		struct vm_instruction vmi;
