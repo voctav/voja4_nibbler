@@ -37,7 +37,14 @@ const int DISPLAY_HEIGHT = 0x10;
 
 const int DIMMER_LEVELS = 0x10;
 
-const int STATUS_UPDATE_USEC = 100000;
+const int STATUS_UPDATE_USEC = 100000;	/* Minimum period between redrawing status during execution. */
+
+/*
+ * MAX_UI_SLEEP_USEC should be greater than UI_UPDATE_PERIOD_USEC by a margin of
+ * at least the time it takes to do one update to ensure proper VM cycle timing.
+ */
+const int UI_UPDATE_PERIOD_USEC = 1000;	/* Minimum period between UI updates. */
+const int MAX_UI_SLEEP_USEC = 5000;	/* Maximum time to sleep when waiting to synchronize to the next cycle. */
 
 char *CLOCK_FREQUENCIES[] = {
 	"MAX",
@@ -374,22 +381,39 @@ bool ui_run(struct ui *ui, const char *binary_path)
 	prg = NULL;
 
 	ui->vm_dirty = true;
+	vm_clock_t t_last_update = 0;
 
 	while (!ui->quit) {
+		/* Rate limit updates if nothing interesting happened since the last one. */
+		long elapsed_usec = vm_clock_as_usec(get_vm_clock(&vm->t_start) - t_last_update);
+		if (UI_UPDATE_PERIOD_USEC > elapsed_usec) {
+			usleep(UI_UPDATE_PERIOD_USEC - elapsed_usec);
+		}
+
+		/* Process input and optionally update the screen. */
 		ui_update(ui, vm);
 		if (ui->paused) {
-			continue;
+			continue; /* The cycle clock is paused. */
 		}
 
-		long delay_usec = vm_get_cycle_wait_usec(vm);
-		usleep(delay_usec);
+		/* Check how much time is left until the next cycle. */
+		long cycle_delay_usec = vm_get_cycle_wait_usec(vm);
+		if (cycle_delay_usec && cycle_delay_usec <= MAX_UI_SLEEP_USEC) {
+			/* Not too much, wait now so cycle execution happens below. */
+			usleep(cycle_delay_usec);
+			cycle_delay_usec = 0;
+		}
+		if (cycle_delay_usec) {
+			continue; /* The next cycle is not here yet.*/
+		}
 
+		/* Execute the next cycle. */
 		vm_execute_cycle(vm);
-		ui->vm_dirty = true;
-
+		ui->vm_dirty = true; /* VM state probably changed. */
 		if (ui->single_step) {
-			ui->paused = true;
+			ui->paused = true; /* Single step mode pauses after each instruction. */
 		}
+		t_last_update = 0; /* Execute the next update immediately. */
 	}
 
 	vm_destroy(vm);
