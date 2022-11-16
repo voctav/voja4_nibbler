@@ -47,8 +47,8 @@ These have been assembled from the official badge tools repo.
 
 Keys:
   * Q - end program and exit.
-  * Space - enter single step mode, or execute next instruction.
-  * Enter - exit single step mode and continue running program.
+  * Space - pause execution, or execute a single instruction if already paused.
+  * Enter - continue execution normally if paused.
   * Left/Right - decrement/increment Page register.
   * `<tab>` - key 0 (mode).
   * `1 2 3 4` - keys 1-4 (opcode).
@@ -61,9 +61,9 @@ parse the escape sequence.
 
 ## Command Line Options
 
-  * The -s option tells nibbler to start in single step mode. The default is
-    to start in free running mode and require the user pause execution with the
-    space key.
+  * The -p option tells nibbler to pause at the start of the program before
+    executing any instructions. This allows single stepping from the beginning.
+    The default is to start executing directly.
   * The -r option will color the page display area red on terminals that support
     colors. This better simulates the look for the real hardware.
 

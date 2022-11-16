@@ -151,7 +151,7 @@ void ui_init(struct ui *ui, int ui_options)
 	wtimeout(ui->status, 0);
 	keypad(ui->status, true);
 
-	ui->single_step = (ui_options & STEP_MODE) == STEP_MODE;
+	ui->paused = (ui_options & START_PAUSED) == START_PAUSED;
 }
 
 void ui_destroy(struct ui *ui)
@@ -203,94 +203,91 @@ void maybe_update_pages(const struct vm_state *vm, struct ui *ui)
 	wrefresh(ui->display);
 }
 
-void handle_keys(struct vm_state *vm, struct ui *ui, bool loop)
+void handle_keys(struct vm_state *vm, struct ui *ui)
 {
-	do {
-		int key = -1;
-		int ch = wgetch(ui->status);
-		switch (ch) {
-		case 'q':
-			ui->quit = true;
-			loop = false;
-			break;
-		case '\n':
-			ui->single_step = false;
-			loop = false;
-			break;
-		case ' ':
-			ui->single_step = true;
-			loop = false;
-			break;
-		case KEY_LEFT:
-			vm->reg_page = (vm->reg_page - 1) & 0xf;
-			break;
-		case KEY_RIGHT:
-			vm->reg_page = (vm->reg_page + 1) & 0xf;
-			break;
-		case '\t':
-			key = 0;
-			break;
-		case '1':
-			key = 1;
-			break;
-		case '2':
-			key = 2;
-			break;
-		case '3':
-			key = 3;
-			break;
-		case '4':
-			key = 4;
-			break;
-		case 'a':
-			key = 5;
-			break;
-		case 's':
-			key = 6;
-			break;
-		case 'd':
-			key = 7;
-			break;
-		case 'f':
-			key = 8;
-			break;
-		case 'z':
-			key = 9;
-			break;
-		case 'x':
-			key = 10;
-			break;
-		case 'c':
-			key = 11;
-			break;
-		case 'v':
-			key = 12;
-			break;
-		case '/':
-			key = 13;
-			break;
-		case ERR:
-			break;
-		}
-		if (key >= 0) {
-			vm->reg_key_status = KEY_STATUS_JUST_PRESS | KEY_STATUS_LAST_PRESS | KEY_STATUS_ANY_PRESS;
-			vm->reg_key_reg = key;
-		}
-	} while (loop);
+	int key = -1;
+	int ch = wgetch(ui->status);
+	switch (ch) {
+	case 'q':
+		ui->quit = true;
+		break;
+	case '\n':
+		ui->single_step = false;
+		ui->paused = false;
+		break;
+	case ' ':
+		ui->single_step = true;
+		ui->paused = false;
+		break;
+	case KEY_LEFT:
+		vm->reg_page = (vm->reg_page - 1) & 0xf;
+		break;
+	case KEY_RIGHT:
+		vm->reg_page = (vm->reg_page + 1) & 0xf;
+		break;
+	case '\t':
+		key = 0;
+		break;
+	case '1':
+		key = 1;
+		break;
+	case '2':
+		key = 2;
+		break;
+	case '3':
+		key = 3;
+		break;
+	case '4':
+		key = 4;
+		break;
+	case 'a':
+		key = 5;
+		break;
+	case 's':
+		key = 6;
+		break;
+	case 'd':
+		key = 7;
+		break;
+	case 'f':
+		key = 8;
+		break;
+	case 'z':
+		key = 9;
+		break;
+	case 'x':
+		key = 10;
+		break;
+	case 'c':
+		key = 11;
+		break;
+	case 'v':
+		key = 12;
+		break;
+	case '/':
+		key = 13;
+		break;
+	case ERR:
+		break;
+	}
+	if (key >= 0) {
+		vm->reg_key_status = KEY_STATUS_JUST_PRESS | KEY_STATUS_LAST_PRESS | KEY_STATUS_ANY_PRESS;
+		vm->reg_key_reg = key;
+	}
 }
 
 void ui_update(struct ui *ui, struct vm_state *vm)
 {
 	vm_clock_t now = get_vm_clock(&vm->t_start);
 
-	handle_keys(vm, ui, false /* loop */);
+	handle_keys(vm, ui);
 	if (ui->quit) {
 		return;
 	}
 
 	maybe_update_pages(vm, ui);
 
-	if (ui->single_step || vm_clock_as_usec(now - ui->t_last_ui_update) > STATUS_UPDATE_USEC) {
+	if (ui->paused || vm_clock_as_usec(now - ui->t_last_ui_update) > STATUS_UPDATE_USEC) {
 		bool io_pos = vm->reg_wr_flags & WR_FLAG_IN_OUT_POS;
 		int row = 1;
 		wmove(ui->status, row++, 1);
@@ -351,10 +348,6 @@ void ui_update(struct ui *ui, struct vm_state *vm)
 		wrefresh(ui->status);
 		ui->t_last_ui_update = now;
 	}
-
-	if (ui->single_step) {
-		handle_keys(vm, ui, true /* loop */);
-	}
 }
 
 bool ui_run(struct ui *ui, const char *binary_path)
@@ -374,11 +367,18 @@ bool ui_run(struct ui *ui, const char *binary_path)
 
 	while (!ui->quit) {
 		ui_update(ui, vm);
+		if (ui->paused) {
+			continue;
+		}
 
 		long delay_usec = vm_get_cycle_wait_usec(vm);
 		usleep(delay_usec);
 
 		vm_execute_cycle(vm);
+
+		if (ui->single_step) {
+			ui->paused = true;
+		}
 	}
 
 	vm_destroy(vm);

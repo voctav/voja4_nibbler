@@ -39,10 +39,13 @@ struct ui {
 
 	bool quit;
 	bool single_step;
+	bool paused;
 };
 
-#define STEP_MODE 1
-#define RED_MODE 2
+enum {
+	START_PAUSED = 0x1,
+	RED_MODE = 0x2,
+};
 
 void ui_init(struct ui *ui, int ui_options);
 

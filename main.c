@@ -27,8 +27,8 @@
 void output_usage(const char* executable_name)
 {
 	fprintf(stderr, "Nibbler - VM for Voja's 4-bit processor. Eats nibbles for breakfast.\n");
-	fprintf(stderr, "Usage: %s [-s] [-r] <file.hex>\n", executable_name);
-	fprintf(stderr, "  -s: start in step mode, default is to start running\n");
+	fprintf(stderr, "Usage: %s [-p] [-r] <file.hex>\n", executable_name);
+	fprintf(stderr, "  -p: pause at the start of the program before executing any instructions\n");
 	fprintf(stderr, "  -r: use red for page display to simulate LED color, default is gray\n");
 }
 
@@ -36,10 +36,10 @@ int main(int argc, char *argv[])
 {
 	int opt;
 	int ui_options = 0;
-	while ((opt = getopt(argc, argv, "sr")) != -1) {
+	while ((opt = getopt(argc, argv, "pr")) != -1) {
 		switch (opt) {
-		case 's':
-			ui_options |= STEP_MODE;
+		case 'p':
+			ui_options |= START_PAUSED;
 			break;
 		case 'r':
 			ui_options |= RED_MODE;
