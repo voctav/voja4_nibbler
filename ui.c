@@ -372,16 +372,13 @@ bool ui_run(struct ui *ui, const char *binary_path)
 	vm_init(vm, prg); /* vm takes ownership of prg. */
 	prg = NULL;
 
-	/* do one pass of UI so single-step mode will start on first instruction */
-	ui_update(ui, vm);
-
 	while (!ui->quit) {
+		ui_update(ui, vm);
+
 		long delay_usec = vm_get_cycle_wait_usec(vm);
 		usleep(delay_usec);
 
 		vm_execute_cycle(vm);
-
-		ui_update(ui, vm);
 	}
 
 	vm_destroy(vm);
