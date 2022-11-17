@@ -21,7 +21,6 @@
 
 #include "program.h"
 #include "ops.h"
-#include "ui.h"
 
 #include <assert.h>
 #include <stdio.h>
