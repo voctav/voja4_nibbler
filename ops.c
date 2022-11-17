@@ -542,6 +542,16 @@ void op_inc(const struct vm_instruction *instr, const struct instruction_descrip
 	vm->user_mem[dst_addr] = result & 0xf;
 	update_zero_flag(result, vm);
 	update_carry_flag(result, vm);
+	if ((vm->reg_flags & FLAG_CARRY) &&
+			(dst_addr == get_reg_addr(&vm->reg_jsr, vm) ||
+			dst_addr == get_reg_addr(&vm->reg_pcl, vm))) {
+		/* Carry over to pcm and pch. */
+		vm->reg_pcm++;
+		if (vm->reg_pcm & 0x10) {
+			vm->reg_pcm &= 0xf;
+			vm->reg_pch = (vm->reg_pch + 1) & 0xf;
+		}
+	}
 	maybe_call_or_jump(dst_addr, vm);
 }
 
@@ -557,6 +567,16 @@ void op_dec(const struct vm_instruction *instr, const struct instruction_descrip
 	vm->user_mem[dst_addr] = result & 0xf;
 	update_zero_flag(result, vm);
 	update_borrow_flag(result, vm);
+	if (!(vm->reg_flags & FLAG_CARRY) &&
+			(dst_addr == get_reg_addr(&vm->reg_jsr, vm) ||
+			dst_addr == get_reg_addr(&vm->reg_pcl, vm))) {
+		/* Carry over to pcm and pch. */
+		vm->reg_pcm--;
+		if (vm->reg_pcm & 0x10) {
+			vm->reg_pcm &= 0xf;
+			vm->reg_pch = (vm->reg_pch - 1) & 0xf;
+		}
+	}
 	maybe_call_or_jump(dst_addr, vm);
 }
 
