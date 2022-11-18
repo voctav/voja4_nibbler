@@ -325,7 +325,7 @@ void maybe_update_status(const struct vm_state *vm, struct ui *ui)
 		disassemble_instruction(&vmi, descr, buf, sizeof(buf));
 		wmove(ui->status, row++, 1);
 		wprintw(ui->status, "%c%03hx:  %hhx%hhx%hhx  %-*s",
-			pc == vm->reg_pc ? '>' : ' ', pc, vmi.nibble1, vmi.nibble2, vmi.nibble3, sizeof(buf), buf);
+			pc == vm->reg_pc ? '>' : ' ', pc, vmi.nibble1, vmi.nibble2, vmi.nibble3, (int)sizeof(buf), buf);
 	}
 
 	wrefresh(ui->status);
