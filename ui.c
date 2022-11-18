@@ -38,6 +38,7 @@ const int DISPLAY_HEIGHT = 0x10;
 const int DIMMER_LEVELS = 0x10;
 
 const int KEY_UP_DELAY_USEC = 200000;	/* Delay after which a key press will generate a corresponding key release. */
+const int DISPLAY_UPDATE_USEC = 33333;	/* Minimum period between redrawing display during execution (30 Hz). */
 const int STATUS_UPDATE_USEC = 100000;	/* Minimum period between redrawing status during execution. */
 
 /*
@@ -175,6 +176,12 @@ void ui_destroy(struct ui *ui)
 void maybe_update_display(const struct vm_state *vm, struct ui *ui)
 {
 	vm_clock_t start = get_vm_clock(&vm->t_start);
+
+	if (vm_clock_as_usec(start - ui->t_last_display_update) < DISPLAY_UPDATE_USEC) {
+		return; /* Rate limit display updates to simulate screen refresh rate. */
+	}
+
+	ui->t_last_display_update = start;
 
 	/* Detect if nothing changed and skip update. */
 	memory_word_t page = vm->reg_page;
