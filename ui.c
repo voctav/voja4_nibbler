@@ -37,6 +37,7 @@ const int DISPLAY_HEIGHT = 0x10;
 
 const int DIMMER_LEVELS = 0x10;
 
+const int KEY_UP_DELAY_USEC = 200000;	/* Delay after which a key press will generate a corresponding key release. */
 const int STATUS_UPDATE_USEC = 100000;	/* Minimum period between redrawing status during execution. */
 
 /*
@@ -400,6 +401,17 @@ void handle_keys(struct vm_state *vm, struct ui *ui)
 		vm->reg_key_status = KEY_STATUS_JUST_PRESS | KEY_STATUS_LAST_PRESS | KEY_STATUS_ANY_PRESS;
 		vm->reg_key_reg = key;
 		ui->vm_dirty = true;
+		ui->t_last_key_press = get_vm_clock(&vm->t_start);
+	} else if (vm->reg_key_status & KEY_STATUS_LAST_PRESS) {
+		/*
+		 * There's no easy/portable way to get key release events, so assume keys are released
+		 * after a preset amount of time.
+		 */
+		long elapsed_usec = vm_clock_as_usec(get_vm_clock(&vm->t_start) - ui->t_last_key_press);
+		if (elapsed_usec >= KEY_UP_DELAY_USEC) {
+			/* Generate an artificial key release event, assume all keys have been released. */
+			vm->reg_key_status &= ~(KEY_STATUS_LAST_PRESS | KEY_STATUS_ANY_PRESS);
+		}
 	}
 }
 

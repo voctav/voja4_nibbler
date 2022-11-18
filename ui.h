@@ -40,6 +40,7 @@ struct ui {
 	WINDOW *status;
 	WINDOW *display;
 
+	vm_clock_t t_last_key_press;	/* Timestamp of the last key press. */
 	vm_clock_t t_last_status_update;	/* Timestamp of the last status update. */
 
 	/* Stats. */

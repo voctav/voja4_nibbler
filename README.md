@@ -97,10 +97,12 @@ type (e.g. `export TERM=xterm-256color`):
 The core VM seems to work well with a variety of programs, but there may still
 be bugs.
 
-The following features are not implemented yet:
-  * Keys are implemented partially (no key up events)
-  * GPIO
-  * UART
+The following features are not supported (or only partially supported):
+  * Key support is partial. Alt key is not supported, and since it's not
+    possible to get key release events from the terminal, a key will
+    be reported as released after a fixed amount of time (200 miliseconds).
+  * GPIO input is not implemented; pins will always show as 1.
+  * UART is not implemented.
 
 There a lot more work to be done on the UI.
 
